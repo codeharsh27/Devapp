@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-requests
-python-dotenv
-apscheduler
-supabase
-httpx

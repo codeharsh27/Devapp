@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:blog_app/feature/resume/data/models/resume_models.dart';
 import 'package:blog_app/feature/resume/domain/services/pdf_service.dart';
-import 'package:blog_app/intit_dependency.dart';
+import 'package:blog_app/init_dependency.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 

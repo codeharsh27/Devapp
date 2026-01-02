@@ -32,6 +32,128 @@ class PdfService {
       ),
     );
 
+    // Add AI Feedback Page if available
+    if (data.atsScore != null ||
+        data.recommendations.isNotEmpty ||
+        data.missingSkills.isNotEmpty) {
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  'AI Resume Analysis & Feedback',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey900,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              if (data.atsScore != null) ...[
+                _buildSectionTitle('Estimated ATS Score'),
+                pw.Container(
+                  alignment: pw.Alignment.center,
+                  padding: const pw.EdgeInsets.symmetric(vertical: 20),
+                  child: pw.Column(
+                    children: [
+                      pw.Text(
+                        '${data.atsScore!.toStringAsFixed(1)} / 100',
+                        style: pw.TextStyle(
+                          fontSize: 40,
+                          fontWeight: pw.FontWeight.bold,
+                          color: data.atsScore! > 85
+                              ? PdfColors.green700
+                              : (data.atsScore! > 70
+                                    ? PdfColors.orange700
+                                    : PdfColors.red700),
+                        ),
+                      ),
+                      pw.Text(
+                        data.atsScore! > 85
+                            ? 'Excellent'
+                            : (data.atsScore! > 70
+                                  ? 'Good Potenetial'
+                                  : 'Needs Improvement'),
+                        style: const pw.TextStyle(
+                          fontSize: 14,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+              ],
+
+              if (data.missingSkills.isNotEmpty) ...[
+                _buildSectionTitle('Missing Key Skills'),
+                pw.Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: data.missingSkills
+                      .map(
+                        (skill) => pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.red50,
+                            border: pw.Border.all(color: PdfColors.red200),
+                            borderRadius: pw.BorderRadius.circular(4),
+                          ),
+                          child: pw.Text(
+                            skill,
+                            style: const pw.TextStyle(
+                              color: PdfColors.red900,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                pw.SizedBox(height: 20),
+              ],
+
+              if (data.recommendations.isNotEmpty) ...[
+                _buildSectionTitle('Recommendations & Keywords'),
+                ...data.recommendations.map(
+                  (rec) => pw.Container(
+                    margin: const pw.EdgeInsets.only(bottom: 8),
+                    child: pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          '• ',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.blueGrey,
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            rec,
+                            style: const pw.TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ];
+          },
+        ),
+      );
+    }
+
     return pdf.save();
   }
 
@@ -66,7 +188,6 @@ class PdfService {
 
   List<pw.Widget> _buildModernLayout(ResumeData data) {
     // Modern: Left sidebar with dark background for personal info, right side for content
-    final sidebarColor = PdfColors.blueGrey900;
     final accentColor = PdfColors.blueGrey900;
 
     return [

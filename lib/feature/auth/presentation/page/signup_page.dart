@@ -4,6 +4,7 @@ import 'package:blog_app/feature/auth/presentation/bloc/auth_bloc.dart';
 import 'package:blog_app/feature/auth/presentation/bloc/auth_event.dart';
 import 'package:blog_app/feature/auth/presentation/bloc/auth_state.dart';
 import 'package:blog_app/feature/auth/presentation/page/login_page.dart';
+import 'package:blog_app/main_page.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,7 +46,11 @@ class _SignUpPageState extends State<SignUpPage> {
                 if (state is AuthFailure) {
                   showSnackBar(context, state.message);
                 } else if (state is AuthSuccess) {
-                  // Navigation handled by SessionNavigator in main.dart
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MainPage()),
+                    (route) => false,
+                  );
                 }
               },
               builder: (context, state) {

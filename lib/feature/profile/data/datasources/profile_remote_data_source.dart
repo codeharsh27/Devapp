@@ -54,7 +54,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String userId,
   }) async {
     try {
-      final imagePath = '$userId/profile_image';
+      final fileExtension = image.path.split('.').last;
+      final imagePath = '$userId/profile_image.$fileExtension';
       await supabaseClient.storage
           .from('avatars')
           .upload(
@@ -62,7 +63,9 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             image,
             fileOptions: const FileOptions(upsert: true),
           );
-      return supabaseClient.storage.from('avatars').getPublicUrl(imagePath);
+      return await supabaseClient.storage
+          .from('avatars')
+          .createSignedUrl(imagePath, 60 * 60 * 24 * 365 * 10);
     } catch (e) {
       throw ServerException(e.toString());
     }

@@ -5,7 +5,7 @@ import 'package:blog_app/feature/resume/presentation/pages/resume_preview_page.d
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:blog_app/feature/resume/domain/services/pdf_service.dart';
-import 'package:blog_app/intit_dependency.dart';
+import 'package:blog_app/init_dependency.dart';
 import 'package:google_generative_ai/google_generative_ai.dart' hide Language;
 import 'package:lottie/lottie.dart';
 
@@ -41,7 +41,7 @@ class _ResumeWizardPageState extends State<ResumeWizardPage> {
 
     try {
       final model = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         apiKey: AppSecrets.geminiApiKey,
       );
 
@@ -463,7 +463,7 @@ class _ResumeWizardPageState extends State<ResumeWizardPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -4),
                 ),
@@ -1760,18 +1760,23 @@ class _ResumeLoadingPageState extends State<ResumeLoadingPage> {
     final cubit = context.read<ResumeBuilderCubit>();
 
     // 1. AI Enhancement
-    final success = await cubit.generateAiEnhancedResume();
+    final error = await cubit.generateAiEnhancedResume();
 
     if (!mounted) return;
 
-    if (!success) {
+    if (error != null) {
+      // ignore: avoid_print
+      print('AI Error caught in UI: $error');
+
       final shouldProceed = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           title: const Text('AI Enhancement Failed'),
-          content: const Text(
-            'We couldn\'t enhance your resume with AI. This might be due to connectivity issues or content limits.\n\nDo you want to proceed with your original data?',
+          content: SingleChildScrollView(
+            child: Text(
+              'We couldn\'t enhance your resume with AI.\n\nError: $error\n\nDo you want to proceed with your original data?',
+            ),
           ),
           actions: [
             TextButton(

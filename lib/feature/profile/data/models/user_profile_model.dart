@@ -31,7 +31,7 @@ class UserProfileModel extends UserProfile {
       email: json['email'] as String? ?? '',
       phone: json['phone'] as String?,
       location: json['location'] as String?,
-      bio: null,
+      bio: json['bio'] as String?,
       profilePhotoUrl:
           json['image_url'] as String? ?? json['avatar_url'] as String?,
       currentRole: json['role'] as String? ?? json['current_role'] as String?,
@@ -54,8 +54,10 @@ class UserProfileModel extends UserProfile {
     return {
       'id': id,
       'name': name,
+      'email': email,
       'phone': phone,
       'location': location,
+      'bio': bio,
       'skills': primarySkills,
       'avatar_url': profilePhotoUrl,
       'role': currentRole,

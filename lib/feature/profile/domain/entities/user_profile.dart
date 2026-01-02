@@ -75,4 +75,50 @@ class UserProfile {
 
     return filledFields / totalFields;
   }
+
+  UserProfile copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? location,
+    String? bio,
+    String? profilePhotoUrl,
+    String? currentRole,
+    String? experienceLevel,
+    String? resumeUrl,
+    String? jobType,
+    List<String>? primarySkills,
+    List<String>? additionalSkills,
+    String? learningGoals,
+    List<String>? interests,
+    List<String>? preferredRoles,
+    List<String>? preferredLocations,
+    String? linkedinUrl,
+    String? githubUrl,
+    String? xUrl,
+  }) {
+    return UserProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      location: location ?? this.location,
+      bio: bio ?? this.bio,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
+      currentRole: currentRole ?? this.currentRole,
+      experienceLevel: experienceLevel ?? this.experienceLevel,
+      resumeUrl: resumeUrl ?? this.resumeUrl,
+      jobType: jobType ?? this.jobType,
+      primarySkills: primarySkills ?? this.primarySkills,
+      additionalSkills: additionalSkills ?? this.additionalSkills,
+      learningGoals: learningGoals ?? this.learningGoals,
+      interests: interests ?? this.interests,
+      preferredRoles: preferredRoles ?? this.preferredRoles,
+      preferredLocations: preferredLocations ?? this.preferredLocations,
+      linkedinUrl: linkedinUrl ?? this.linkedinUrl,
+      githubUrl: githubUrl ?? this.githubUrl,
+      xUrl: xUrl ?? this.xUrl,
+    );
+  }
 }

@@ -66,7 +66,7 @@ class _ResumeThemePageState extends State<ResumeThemePage> {
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -133,7 +133,7 @@ class _ResumeThemePageState extends State<ResumeThemePage> {
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 10,
                                   spreadRadius: 2,
                                 ),

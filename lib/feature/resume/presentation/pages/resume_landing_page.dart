@@ -1,4 +1,3 @@
-import 'package:blog_app/core/theme/app_pallet.dart';
 import 'package:blog_app/feature/resume/presentation/pages/resume_theme_page.dart';
 import 'package:flutter/material.dart';
 

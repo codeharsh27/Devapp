@@ -97,3 +97,60 @@ class RemotiveRemoteDataSource implements JobRemoteDataSource {
     return [];
   }
 }
+
+class FindWorkRemoteDataSource implements JobRemoteDataSource {
+  final http.Client client;
+
+  FindWorkRemoteDataSource(this.client);
+
+  @override
+  Future<List<JobModel>> getJobs() async {
+    try {
+      final response = await client.get(
+        Uri.parse('https://findwork.dev/api/jobs/?sort_by=date_posted'),
+        headers: {'Authorization': 'Token ${JobSecrets.findWorkApiKey}'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData['results'] != null) {
+          return (jsonData['results'] as List).map((job) {
+            final isRemote = job['remote'] == true;
+            final location =
+                job['location'] ?? (isRemote ? 'Remote' : 'Unknown');
+
+            return JobModel(
+              title: job['role'] ?? 'No title',
+              company: job['company_name'] ?? 'Unknown Company',
+              location: location,
+              employmentType: isRemote
+                  ? 'Remote'
+                  : 'Full-time', // Simplification
+              applyUrl: job['url'] ?? '', // Assuming 'url' field exists
+              postedAt: job['date_posted'] != null
+                  ? DateTime.tryParse(job['date_posted'])
+                  : null,
+              description:
+                  job['text'] ??
+                  '', // 'text' usually contains description in FindWork
+              skills:
+                  (job['keywords'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [],
+              companyLogo: job['logo'], // Assuming 'logo' field exists
+              isSaved: false,
+            );
+          }).toList();
+        }
+      } else {
+        debugPrint(
+          'FindWork API Error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('FindWork API Error: $e');
+    }
+    return [];
+  }
+}

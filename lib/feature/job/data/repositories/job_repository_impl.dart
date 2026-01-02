@@ -12,12 +12,14 @@ class JobRepositoryImpl implements JobRepository {
   final JobLocalDataSource localDataSource;
   final JobRemoteDataSource jSearchRemoteDataSource;
   final JobRemoteDataSource remotiveRemoteDataSource;
+  final JobRemoteDataSource findWorkRemoteDataSource;
   final ConnectionChecker connectionChecker;
 
   JobRepositoryImpl(
     this.localDataSource,
     this.jSearchRemoteDataSource,
     this.remotiveRemoteDataSource,
+    this.findWorkRemoteDataSource,
     this.connectionChecker,
   );
 
@@ -44,18 +46,25 @@ class JobRepositoryImpl implements JobRepository {
       // Fetch from both sources
       List<JobModel> allJobs = [];
 
-      try {
-        final jSearchJobs = await jSearchRemoteDataSource.getJobs();
-        allJobs.addAll(jSearchJobs);
-      } catch (e) {
-        debugPrint('JSearch failed: $e');
-      }
+      // try {
+      //   final jSearchJobs = await jSearchRemoteDataSource.getJobs();
+      //   allJobs.addAll(jSearchJobs);
+      // } catch (e) {
+      //   debugPrint('JSearch failed: $e');
+      // }
 
       try {
         final remotiveJobs = await remotiveRemoteDataSource.getJobs();
         allJobs.addAll(remotiveJobs);
       } catch (e) {
         debugPrint('Remotive failed: $e');
+      }
+
+      try {
+        final findWorkJobs = await findWorkRemoteDataSource.getJobs();
+        allJobs.addAll(findWorkJobs);
+      } catch (e) {
+        debugPrint('FindWork failed: $e');
       }
 
       if (allJobs.isEmpty) {

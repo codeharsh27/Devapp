@@ -1,0 +1,10 @@
+fastapi==0.109.0         # The web framework. Speed + Type Checking.
+uvicorn[standard]==0.27.0 # The server that actually runs your Python code (ASGI).
+sqlalchemy==2.0.25       # The ORM. Lets us write Python instead of raw SQL.
+alembic==1.13.1          # Database Migrations. Essential for evolving your DB without losing data.
+pydantic==2.6.0          # Data validation. The "Guard" at the door.
+pydantic-settings==2.1.0 # Securely managing secrets (.env files).
+psycopg2-binary==2.9.9   # The adapter that lets Python talk to PostgreSQL.
+python-multipart==0.0.6  # Needed for file uploads (Resume Parser).
+httpx==0.26.0            # For making requests to outside APIs (AI Service).
+email-validator==2.1.0

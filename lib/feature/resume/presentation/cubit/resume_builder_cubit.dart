@@ -144,19 +144,11 @@ class ResumeBuilderCubit extends Cubit<ResumeBuilderState> {
     }
   }
 
-  Future<bool> generateAiEnhancedResume() async {
-    if (state is! ResumeBuilderLoaded) return false;
+  Future<String?> generateAiEnhancedResume() async {
+    if (state is! ResumeBuilderLoaded) return 'Resume data not loaded';
     final currentState = state as ResumeBuilderLoaded;
 
     try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: AppSecrets.geminiApiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-        ),
-      );
-
       final currentDataJson = currentState.resumeData.toJson();
       final prompt =
           '''
@@ -169,15 +161,66 @@ Please enhance this resume data according to the instructions and return the JSO
 ''';
 
       final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
 
-      if (response.text != null) {
-        String jsonString = response.text!;
-        // Clean up markdown if still present despite mime type
-        if (jsonString.contains('```json')) {
-          jsonString = jsonString.split('```json')[1].split('```')[0];
-        } else if (jsonString.contains('```')) {
-          jsonString = jsonString.split('```')[1].split('```')[0];
+      final modelsToTry = [
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash-001',
+        'gemini-1.5-pro',
+        'gemini-1.5-pro-001',
+      ];
+      GenerateContentResponse? response;
+      List<String> errorMessages = [];
+
+      for (final modelName in modelsToTry) {
+        try {
+          // ignore: avoid_print
+          print('Attempting AI generation with model: $modelName');
+
+          final model = GenerativeModel(
+            model: modelName,
+            apiKey: AppSecrets.geminiApiKey,
+            generationConfig: GenerationConfig(
+              responseMimeType: 'application/json',
+            ),
+            safetySettings: [
+              SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+              SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+              SafetySetting(
+                HarmCategory.sexuallyExplicit,
+                HarmBlockThreshold.none,
+              ),
+              SafetySetting(
+                HarmCategory.dangerousContent,
+                HarmBlockThreshold.none,
+              ),
+            ],
+          );
+
+          response = await model.generateContent(content);
+          if (response.text != null) {
+            break; // Success
+          }
+        } catch (e) {
+          final errorMsg = 'Model $modelName failed: $e';
+          errorMessages.add(errorMsg);
+          // ignore: avoid_print
+          print('Model $modelName failed: $e');
+          continue; // Try next
+        }
+      }
+
+      if (response?.text != null) {
+        String jsonString = response!.text!;
+
+        // Robust JSON extraction: Find the first '{' and last '}'
+        final startIndex = jsonString.indexOf('{');
+        final endIndex = jsonString.lastIndexOf('}');
+
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+          jsonString = jsonString.substring(startIndex, endIndex + 1);
+        } else {
+          throw const FormatException('No valid JSON object found in response');
         }
 
         var enhancedData = ResumeData.fromJson(jsonString.trim());
@@ -189,14 +232,18 @@ Please enhance this resume data according to the instructions and return the JSO
 
         emit(currentState.copyWith(resumeData: enhancedData));
         await _localDataSource.saveResume(enhancedData);
-        return true;
+        return null; // Success
       }
-      return false;
+
+      final allErrors = errorMessages.join('\n\n');
+      return allErrors.isNotEmpty ? allErrors : 'Empty response from AI';
     } catch (e) {
       // Log error internally but return false so UI knows
+      // ignore: avoid_print
+      print('AI Enhancement failed: $e'); // Make sure this is visible in logs
       emit(ResumeBuilderError('AI Enhancement failed: $e'));
       emit(currentState); // Restore state
-      return false;
+      return e.toString();
     }
   }
 

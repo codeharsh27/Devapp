@@ -49,6 +49,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
         image: image,
         userId: userId,
       );
+      // Append timestamp to force cache refresh
       return right(imageUrl);
     } on ServerException catch (e) {
       return left(Failure(e.message));

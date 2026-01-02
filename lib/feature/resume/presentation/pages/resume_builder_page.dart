@@ -63,10 +63,13 @@ class _ResumeBuilderPageState extends State<ResumeBuilderPage> {
       body: BlocConsumer<ResumeBuilderCubit, ResumeBuilderState>(
         listener: (context, state) {
           if (state is ResumeBuilderError) {
+            // ignore: avoid_print
+            print('UI Error Listener: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5), // Longer duration to read
               ),
             );
           }
@@ -200,7 +203,7 @@ class _ResumeBuilderPageState extends State<ResumeBuilderPage> {
                       ),
                       backgroundColor: Colors.black,
                     ).copyWith(
-                      foregroundColor: MaterialStateProperty.all(Colors.white),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
                     ),
               ),
             ],
@@ -213,7 +216,7 @@ class _ResumeBuilderPageState extends State<ResumeBuilderPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),

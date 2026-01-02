@@ -11,6 +11,11 @@ class ResumeData {
   final List<Certification> certifications;
   final String resumeStyle;
 
+  // AI Feedback Fields
+  final double? atsScore;
+  final List<String> missingSkills;
+  final List<String> recommendations;
+
   ResumeData({
     required this.personalDetails,
     required this.summary,
@@ -21,6 +26,9 @@ class ResumeData {
     required this.languages,
     required this.certifications,
     this.resumeStyle = 'Professional',
+    this.atsScore,
+    this.missingSkills = const [],
+    this.recommendations = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +42,9 @@ class ResumeData {
       'languages': languages.map((x) => x.toMap()).toList(),
       'certifications': certifications.map((x) => x.toMap()).toList(),
       'resumeStyle': resumeStyle,
+      'atsScore': atsScore,
+      'missingSkills': missingSkills,
+      'recommendations': recommendations,
     };
   }
 
@@ -58,6 +69,11 @@ class ResumeData {
         map['certifications']?.map((x) => Certification.fromMap(x)) ?? [],
       ),
       resumeStyle: map['resumeStyle'] ?? 'Professional',
+      atsScore: map['atsScore'] != null
+          ? (map['atsScore'] as num).toDouble()
+          : null,
+      missingSkills: List<String>.from(map['missingSkills'] ?? []),
+      recommendations: List<String>.from(map['recommendations'] ?? []),
     );
   }
 
@@ -92,6 +108,9 @@ class ResumeData {
       languages: [],
       certifications: [],
       resumeStyle: 'Professional',
+      atsScore: null,
+      missingSkills: [],
+      recommendations: [],
     );
   }
 
@@ -105,6 +124,9 @@ class ResumeData {
     List<Language>? languages,
     List<Certification>? certifications,
     String? resumeStyle,
+    double? atsScore,
+    List<String>? missingSkills,
+    List<String>? recommendations,
   }) {
     return ResumeData(
       personalDetails: personalDetails ?? this.personalDetails,
@@ -116,6 +138,9 @@ class ResumeData {
       languages: languages ?? this.languages,
       certifications: certifications ?? this.certifications,
       resumeStyle: resumeStyle ?? this.resumeStyle,
+      atsScore: atsScore ?? this.atsScore,
+      missingSkills: missingSkills ?? this.missingSkills,
+      recommendations: recommendations ?? this.recommendations,
     );
   }
 }
