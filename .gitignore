@@ -23,5 +23,5 @@ venv/
 .packages
 build/
 .pub-cache/
-android/local.properties
+**/local.properties
 ios/.generated/
