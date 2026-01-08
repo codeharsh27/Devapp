@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: devapp_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-devapp}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devapp_secret}
+      - POSTGRES_DB=${POSTGRES_DB:-devapp}
+    ports:
+      - "5432:5432"
+    networks:
+      - devapp_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: devapp_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - devapp_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend service will be added here once Dockerfile is ready
+  # backend:
+  #   build: ./backend
+  #   ...
+
+networks:
+  devapp_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

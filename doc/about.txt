@@ -1,0 +1,188 @@
+Here is the **DevApp PRD** formatted as a clean, professional **Product Document**. You can copy-paste this directly into Notion, Google Docs, or a Markdown editor.
+
+---
+
+# 📄 Product Requirements Document (PRD)
+
+**Product:** DevApp (Talent Execution Network)
+**Version:** 1.0 (MVP)
+**Status:** 🟡 In Progress
+**Owner:** Product
+**Date:** January 05, 2026
+
+---
+
+## 1. Product Vision
+
+> **Vision Statement:** DevApp replaces resumes and job portals with verifiable execution signals, enabling students to get hired by doing real work, not by applying blindly.
+
+**Long-term Goal:** Become the default execution graph for early-career talent—a system where hiring decisions are based on observed performance over time, not credentials.
+
+---
+
+## 2. Problem Statement
+
+**Core Insight:** Hiring fails because proof of competence arrives too late (only during the interview).
+
+| **Student Pain Points** | **Recruiter Pain Points** |
+| --- | --- |
+| ❌ Resumes lack credibility (easy to fake). | ⚠️ Freshers are high-risk hires. |
+| 📉 Mass applications have <5% response rates. | 🔊 Resume screening is noisy and unreliable. |
+| 🔄 No feedback loop from rejections. | 💸 Interviews are expensive and time-consuming. |
+| 🚧 No way to prove skills *before* the interview. | ⚖️ Hard to compare candidates objectively. |
+
+---
+
+## 3. Solution Overview
+
+DevApp creates a continuous stream of **execution proof** by letting students solve real, production-like tasks.
+
+* **Mechanism:** Students do work first → Recruiters observe performance → Interviews become confirmation.
+* **Task Qualities:** Standardized, Auto-evaluated, Comparable, Discoverable.
+
+---
+
+## 4. Target Personas
+
+### 🧑‍💻 Primary: The Student
+
+* **Profile:** 2nd–4th year CS/IT students.
+* **Behavior:** Android-first, time-constrained, outcome-driven.
+* **Goal:** Wants a job/internship/real exposure without the "application black hole."
+
+### 🕵️ Secondary: The Recruiter/Founder
+
+* **Profile:** Early-stage Founders, CTOs, Hiring Managers.
+* **Behavior:** Web-first, hates manual screening.
+* **Goal:** Needs strong junior engineers fast; values proof over prestige.
+
+---
+
+## 5. Core Principles (Non-Negotiables)
+
+1. **Execution > Education**
+2. **Signals > Credentials**
+3. **Automation > Manual Ops**
+4. **Outcome > Activity**
+5. **Low Friction (Students) & Low Risk (Recruiters)**
+
+---
+
+## 6. MVP Scope
+
+| ✅ **INCLUDED (MVP)** | ⛔ **EXCLUDED (Phase 1)** |
+| --- | --- |
+| Android App (Students) | iOS App |
+| Task/Drops System | Resume Builder |
+| Automated Evaluation Engine | Video Lectures / Courses |
+| Execution Profile & Ranking | Chat / Community Feed |
+| Recruiter Discovery (Basic Web) | College Partnerships |
+| Rewards (Points) |  |
+
+---
+
+## 7. User Journeys
+
+### 7.1 Student Flow
+
+1. **Onboarding:** Phone/OAuth → Select Domain (Backend, Frontend, etc.) → **No Resume Upload.**
+2. **Feed:** View "Drops" (Tasks) displaying Difficulty, Time, Reward, and Deadline.
+3. **Execution:** Pick ONE drop → Timer starts → Submit via GitHub/File/Text.
+4. **Evaluation:** Automated tests run → Score generated → Partial credit awarded.
+5. **Feedback:** Score breakdown + Percentile rank + Non-educational suggestions.
+6. **Profile:** Signals update automatically based on performance.
+
+### 7.2 Recruiter Flow (Web)
+
+1. **Filter:** Select domain and score thresholds.
+2. **Discovery:** View ranked candidates based on execution vectors.
+3. **Inspect:** Deep dive into execution artifacts (code, PRDs).
+4. **Action:** Shortlist or Contact.
+
+---
+
+## 8. The "Drop" System (Task Engine)
+
+*Definition:* A time-boxed, execution-focused unit of real work.
+
+### Task Sources
+
+* **Source A (Canonical - Day 1):** Internally designed production problems (e.g., "Implement JWT Auth", "Fix DB Indexing").
+* **Source B (Open Source - Phase 1.5):** Scraped from GitHub issues/OS feature requests.
+* **Source C (Company - Phase 2):** Structured submission forms from founders.
+
+### Task Lifecycle
+
+`Draft` → `Active` → `Closed` → `Archived` → `Reused`
+
+---
+
+## 9. Signal Engine & Scoring
+
+**The "Moat":** How we quantify talent.
+
+### Signals Per Drop
+
+* Correctness Score
+* Complexity Handled
+* Time to Completion
+* Code Quality/Regression
+
+### Aggregate Execution Profile
+
+(Not editable by user)
+
+1. **Domain Vector:** Strength in specific areas (e.g., Backend vs. Data).
+2. **Consistency Score:** Frequency of high-quality output.
+3. **Reliability Score:** Completion rate vs. abandonment.
+
+---
+
+## 10. Incentive Model
+
+* **Points (XP):** Earned per drop. Unlocks harder drops and boosts visibility.
+* **Paid Drops:** Sponsored by companies. Escrow-based rewards released upon passing.
+
+---
+
+## 11. Technical Architecture (MVP)
+
+| Component | Stack/Technology |
+| --- | --- |
+| **Student App** | Flutter (Android), Riverpod/Bloc |
+| **Recruiter Web** | Flutter Web or React (Read-only MVP) |
+| **Backend** | FastAPI / Node.js |
+| **Database** | PostgreSQL + Redis (Caching) |
+| **Storage** | S3-Compatible Object Storage |
+| **Auth** | Firebase Auth |
+| **Evaluation** | Test-based validators, Static Analysis, Rule-based scoring |
+
+---
+
+## 12. Success Metrics
+
+* ⭐ **North Star:** Offers generated / Active students.
+* **Key Metrics:** Drop completion rate, Repeat participation, Interview conversion rate.
+
+---
+
+## 13. Risks & Mitigations
+
+| Risk | Mitigation Strategy |
+| --- | --- |
+| **Fake Effort / Cheating** | Automated tests + Plagiarism checks + Consistency scoring. |
+| **Low Recruiter Adoption** | seed with Open Source & "Founder Network" drops first. |
+| **Student Churn** | Introduce Paid Drops + Clear visibility incentives. |
+| **Gaming the System** | Multi-dimensional scoring (Speed + Quality + Consistency). |
+
+---
+
+## 14. Roadmap
+
+* **Phase 1 (0-90 Days):** Android App, Canonical Tasks, Auto-Eval, Execution Profiles.
+* **Phase 2:** Recruiter Web Portal, Open-Source Drops, Sponsored Drops.
+* **Phase 3:** iOS App, Advanced Matching Algorithms, Campus Partnerships.
+
+---
+
+> **Final Check:** DevApp succeeds only if **one solved drop is worth more than 50 job applications.**
