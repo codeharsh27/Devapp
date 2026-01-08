@@ -1,0 +1,257 @@
+Here is the updated **DevApp Flutter Android Screen Flows** document. I have integrated the **Intent-Based Messaging & Invites** system directly into the flow, replacing the previous "Alerts" section to reflect the new architecture.
+
+---
+
+# 📱 DEVAPP – FLUTTER ANDROID SCREEN FLOWS
+
+**Audience:** Flutter Engineers, Backend Engineers, Product
+**Platform:** Android (Flutter)
+**Architecture:** Clean Architecture + Riverpod
+**Status:** 🟢 Ready for Dev
+
+---
+
+## 0. CORE UX PHILOSOPHY
+
+* **No "Hello" spam:** Messaging is protocol-based, not chat-based.
+* **Execution First:** Screens prioritize doing work over talking.
+* **Navigation:** Fast, Focused, Outcome-driven.
+
+---
+
+## 1. APP ENTRY FLOW
+
+### 1.1 Splash Screen
+
+* **Purpose:** App boot + Auth check + Config fetch.
+* **Logic:**
+* Check secure storage for `auth_token`.
+* Check `onboarding_completed` flag.
+
+
+* **Navigation:**
+* → Auth Screen (if null).
+* → Domain Selection (if new).
+* → Home (if returning).
+
+
+
+### 1.2 Auth Screen
+
+* **Purpose:** Lowest friction entry.
+* **Options:** Phone OTP, Email, GitHub OAuth (Primary).
+* **Strict Rule:** NO resume upload. NO profile filling here.
+* **State Output:** `user_id`, `auth_token`.
+
+---
+
+## 2. ONBOARDING FLOW (ONE-TIME)
+
+### 2.1 Domain Selection Screen
+
+* **Purpose:** Personalize the execution feed.
+* **UI:** Select 1–3 domains (Backend, Frontend, Data, Product).
+* **Impact:** Controls task feed and signal generation tables.
+* **State:** `user_domains[]`.
+* **Navigation:** → Home (Drops Feed).
+
+---
+
+## 3. CORE APP NAVIGATION
+
+**Bottom Navigation Bar (4 Items)**
+`[ Home ]` `[ Active ]` `[ Profile ]` `[ Inbox ]`
+
+* *Note: "Alerts" is now "Inbox" to house both Notifications and Invites.*
+
+---
+
+## 4. HOME TAB – “DROPS FEED”
+
+### 4.1 Drops Feed Screen
+
+* **Purpose:** The primary engagement loop.
+* **UI Cards:**
+* Drop Title & Domain Tag.
+* Difficulty (Easy/Med/Hard).
+* Estimated Time.
+* Reward (XP / ₹).
+
+
+* **Logic:** Fetches `/drops?domain=user_domains`.
+* **Action:** Tap → Drop Detail.
+
+### 4.2 Drop Detail Screen
+
+* **Purpose:** Commitment.
+* **Shows:** Problem statement, Input artifacts, Output expectations, Deadline.
+* **Constraint:** Once "Start Execution" is tapped, the user is **locked** to this drop until submission or timeout.
+
+---
+
+## 5. EXECUTION FLOW
+
+### 5.1 Active Execution Screen
+
+* **Purpose:** Deep work mode.
+* **UI:** Count-up timer.
+* **Inputs:** GitHub Repo Link, File Upload, or Text Editor.
+* **Action:** Submit → Triggers backend `IN_PROGRESS` → `SUBMITTED`.
+
+### 5.2 Submission Confirmation
+
+* **Purpose:** Hand-off to evaluation engine.
+* **Shows:** "Evaluation Started", Est. wait time (e.g., "Results in 2 mins").
+* **Navigation:** → Active Tab.
+
+---
+
+## 6. ACTIVE TAB – “MY RUNS”
+
+### 6.1 Active Runs Screen
+
+* **Purpose:** Status tracking.
+* **Lists:**
+1. **Evaluating** (Spinner).
+2. **Completed** (Score + Rank).
+3. **Failed/Partial**.
+
+
+* **Action:** Tap → Result Detail.
+
+---
+
+## 7. EVALUATION RESULT FLOW
+
+### 7.1 Result Detail Screen
+
+* **Purpose:** Feedback loop.
+* **Data:** Final Score, Percentile Rank, Correctness/Quality/Speed breakdown.
+* **UX:** "Signal Impact" indicator (e.g., "Backend Signal ↑ 2%").
+
+---
+
+## 8. PROFILE TAB – “EXECUTION PROFILE”
+
+### 8.1 Execution Profile Screen
+
+* **Purpose:** The "Resume Killer".
+* **Sections:**
+* **Radar Chart:** Domain Strengths.
+* **Stats:** Consistency Score, Reliability.
+* **Timeline:** List of completed drops.
+
+
+* **Strict Rule:** Read-only. No manual edits.
+
+---
+
+## 9. INBOX TAB – “COMMUNICATION HUB”
+
+**Architecture:** Split Tabs `[ Notifications ]` `[ Invites ]`
+
+### 9.1 Notifications Tab (Default)
+
+* **Purpose:** System-generated, one-way alerts.
+* **List Items:**
+* "New Drop: Backend System Design"
+* "Rank Update: You represent top 5%"
+* "Evaluation Complete: Score 85/100"
+
+
+* **Action:** Deep link to relevant screen.
+
+### 9.2 Invites Tab (High Value)
+
+* **Purpose:** Recruiter/Founder initiated requests.
+* **Logic:** Only shows items where `type IN ('interview', 'paid_task', 'trial')`.
+* **Empty State:** "Complete more drops to unlock invites."
+
+### 9.3 Invite Detail Screen
+
+* **Purpose:** Decision point.
+* **UI:**
+* **Sender:** Company Name + Recruiter Name.
+* **Intent:** "Interview Request" or "Paid Task".
+* **Context:** Job Role / Task Details.
+* **Expiry:** "Expires in 24h".
+
+
+* **Actions:**
+* **[Accept]:** Unlocks messaging thread.
+* **[Decline]:** Archives invite.
+
+
+
+### 9.4 Secured Message Thread (Conditional)
+
+* **Access:** Only accessible AFTER `Invite` is `Accepted`.
+* **Constraints:**
+* Time-limited (e.g., thread locks after 7 days if inactive).
+* No file attachments (initially).
+* Text only.
+
+
+* **Purpose:** Logistics coordination (scheduling interview, clarifying task).
+
+---
+
+## 10. RECRUITER VISIBILITY (Student View)
+
+### 10.1 Profile Insights
+
+* **UI Element:** Small card on Profile Screen.
+* **Data:** "X Recruiters viewed your profile this week."
+* **Intent:** Motivation/Retention hook.
+
+---
+
+## 11. ERROR / EDGE FLOWS
+
+* **Drop Timeout:** Auto-fail status, cooldown triggered.
+* **Submission Error:** Retry button (state preserved locally).
+* **Invite Expired:** Item greys out in Inbox, cannot be accepted.
+
+---
+
+## 12. STATE MANAGEMENT (Riverpod)
+
+* **`AuthState`**: User token, ID.
+* **`DropsFeedState`**: List of available tasks.
+* **`ActiveRunsState`**: Polling status of current evaluation.
+* **`InboxState`**:
+* `notificationsStream`: List of system alerts.
+* `invitesStream`: List of actionable invites.
+* `activeThreads`: Map of chat sessions.
+
+
+
+---
+
+## 13. PUSH NOTIFICATIONS (Mandatory)
+
+**Triggers & Routing:**
+
+1. **New Drop** → Home Tab.
+2. **Eval Complete** → Result Detail Screen.
+3. **New Invite** → Invite Detail Screen.
+4. **Message Received** → Secured Message Thread.
+
+---
+
+## 14. WHAT WE DO NOT BUILD (YET)
+
+* ❌ **Open Chat:** No browsing users to chat.
+* ❌ **Group Messaging:** 1:1 only.
+* ❌ **Resume Upload:** Still banned.
+* ❌ **Social Feed:** No likes/comments.
+
+---
+
+## 15. SUCCESS CRITERIA (Mobile MVP)
+
+1. **Metric:** User accepts/declines invite within 24 hours.
+2. **Metric:** User completes ≥1 drop in first session.
+3. **Metric:** Zero "Hello" messages sent (all communication is intent-driven).
+
+---
