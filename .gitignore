@@ -12,6 +12,9 @@ env/
 venv/
 *.env
 *.log
+*.db
+*.sqlite
+*.sqlite3
 
 # Flutter / Dart
 .dart_tool/
@@ -20,5 +23,5 @@ venv/
 .packages
 build/
 .pub-cache/
-android/local.properties
+**/local.properties
 ios/.generated/
