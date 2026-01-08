@@ -1,0 +1,24 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.env
+*.log
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.pub-cache/
+android/local.properties
+ios/.generated/
