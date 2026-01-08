@@ -49,6 +49,8 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
   String? _feedback;
   int? _score;
 
+  DateTime? _missionStartTime;
+
   @override
   void initState() {
     super.initState();
@@ -57,45 +59,56 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
 
   Future<void> _initTimer() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload(); // Ensure we have the latest data
     final key = 'drop_start_time_${widget.drop.id}';
     int? startTimeMillis = prefs.getInt(key);
 
-    DateTime startTime;
     if (startTimeMillis == null) {
-      startTime = DateTime.now();
-      await prefs.setInt(key, startTime.millisecondsSinceEpoch);
+      _missionStartTime = DateTime.now();
+      await prefs.setInt(key, _missionStartTime!.millisecondsSinceEpoch);
     } else {
-      startTime = DateTime.fromMillisecondsSinceEpoch(startTimeMillis);
+      _missionStartTime = DateTime.fromMillisecondsSinceEpoch(startTimeMillis);
     }
+
+    _updateTimeLeft();
+  }
+
+  void _updateTimeLeft() {
+    if (_missionStartTime == null) return;
 
     final now = DateTime.now();
-    final elapsed = now.difference(startTime);
+    final elapsed = now.difference(_missionStartTime!);
     final limit = Duration(minutes: widget.drop.timeLimitMinutes);
-    final endTime = startTime.add(limit);
-
-    // Start Sticky Notification
-    try {
-      await NotificationService().requestPermissions();
-      NotificationService().showMissionTimer(widget.drop, endTime);
-    } catch (e) {
-      debugPrint("Notification Error: $e");
-    }
+    final remaining = limit - elapsed;
 
     if (mounted) {
       setState(() {
-        final remaining = limit - elapsed;
         if (remaining.isNegative) {
           _timeLeft = Duration.zero;
           _isExpired = true;
           _isLoadingTimer = false;
-          _clearMissionState(); // Ensure cleaner cleanup if loaded expired
+          _isTimerRunning = false;
+          _countdownTimer?.cancel();
+          // We do NOT clear mission state here automatically on load to avoid
+          // jarring resets if the user just missed it by a second.
+          // They will see "Time's Up" UI.
         } else {
           _timeLeft = remaining;
           _isLoadingTimer = false;
-          _startTimer();
+          if (!_isTimerRunning) {
+            _startTimer();
+          }
         }
       });
     }
+  }
+
+  void _startTimer() {
+    setState(() => _isTimerRunning = true);
+    _countdownTimer?.cancel(); // Cancel any existing timer
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateTimeLeft();
+    });
   }
 
   @override
@@ -132,10 +145,6 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
       final path = 'submissions/$fileName';
 
       // Assuming a public bucket named 'drop_assets' exists or similar
-      // If not, we might need to create it or use a default one.
-      // Let's try 'submissions' bucket if available, else standard storage.
-      // For this user context, I'll try to find a generic way or handle error.
-
       final storage = Supabase.instance.client.storage.from('submissions');
       await storage.upload(path, _selectedImageFile!);
 
@@ -154,26 +163,6 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
         );
       }
     }
-  }
-
-  void _startTimer() {
-    setState(() => _isTimerRunning = true);
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeLeft.inSeconds > 0) {
-        setState(() {
-          _timeLeft = _timeLeft - const Duration(seconds: 1);
-        });
-      } else {
-        timer.cancel();
-        _clearMissionState();
-        if (mounted) {
-          setState(() {
-            _isExpired = true;
-            _isTimerRunning = false;
-          });
-        }
-      }
-    });
   }
 
   String _formatDuration(Duration d) {
@@ -861,32 +850,125 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
   Future<void> _handleQuit() async {
     final shouldQuit = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        final theme = Theme.of(context);
-        return AlertDialog(
-          backgroundColor: theme.cardColor,
-          title: Text("Quit Mission?",
-              style:
-                  GoogleFonts.outfit(color: theme.textTheme.titleLarge?.color)),
-          content: Text(
-            "Are you sure you want to quit? Your progress will be lost.",
-            style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color),
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2B0E0E), Color(0xFF1A1A1A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.redAccent.withOpacity(0.1),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child:
-                  Text("Cancel", style: GoogleFonts.outfit(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text("Quit",
-                  style: GoogleFonts.outfit(
-                      color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Warning Icon
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.redAccent.withOpacity(0.1),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.warning_amber_rounded,
+                    color: Colors.redAccent, size: 48),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+                  begin: const Offset(1, 1),
+                  end: const Offset(1.1, 1.1),
+                  duration: 1.seconds),
+
+              const SizedBox(height: 32),
+
+              Text(
+                "MISSION ABORT",
+                style: GoogleFonts.spaceMono(
+                  color: Colors.redAccent.withOpacity(0.8),
+                  fontSize: 12,
+                  letterSpacing: 4,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Confirm Abort?",
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Abandoning this mission will result in 0 XP and it will be marked as 'Failed' on your permanent record.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text("RESUME",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          )),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                        shadowColor: Colors.redAccent.withOpacity(0.5),
+                      ),
+                      child: Text(
+                        "ABORT",
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
 
     if (shouldQuit == true) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui'; // For ImageFilter
 
 class MainWrapperPage extends StatefulWidget {
   final Widget child;
@@ -41,7 +42,6 @@ class _MainWrapperPageState extends State<MainWrapperPage> {
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     // Floating Capsule Navigation Bar
     return Scaffold(
@@ -65,53 +65,63 @@ class _MainWrapperPageState extends State<MainWrapperPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor, // Adaptive background
-                  border: Border(
-                      top: BorderSide(color: theme.dividerColor, width: 0.5)),
-                  boxShadow: [
-                    if (!isDark)
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -5))
-                  ]),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _NavBarItem(
-                      icon: Icons.home_rounded,
-                      label: "Home",
-                      index: 0,
-                      isSelected: selectedIndex == 0,
-                      onTap: () => _onTap(0),
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                      color: theme.scaffoldBackgroundColor
+                          .withOpacity(0.8), // Glassy background
+                      border: Border(
+                          top: BorderSide(
+                              color: theme.dividerColor.withOpacity(0.1),
+                              width: 0.5)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, -5))
+                      ]),
+                  child: SafeArea(
+                    top: false,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _NavBarItem(
+                          icon: Icons.home_rounded,
+                          label: "Home",
+                          index: 0,
+                          isSelected: selectedIndex == 0,
+                          onTap: () => _onTap(0),
+                        ),
+                        _NavBarItem(
+                          icon: Icons.grid_view_rounded,
+                          label: "Drops",
+                          index: 1,
+                          isSelected: selectedIndex == 1,
+                          onTap: () => _onTap(1),
+                        ),
+                        _NavBarItem(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          label: "Inbox",
+                          index: 2,
+                          isSelected: selectedIndex == 2,
+                          onTap: () => _onTap(2),
+                        ),
+                        _NavBarItem(
+                          icon: Icons.person_outline_rounded,
+                          label: "Profile",
+                          index: 3,
+                          isSelected: selectedIndex == 3,
+                          onTap: () => _onTap(3),
+                        ),
+                      ],
                     ),
-                    _NavBarItem(
-                      icon: Icons.grid_view_rounded,
-                      label: "Drops",
-                      index: 1,
-                      isSelected: selectedIndex == 1,
-                      onTap: () => _onTap(1),
-                    ),
-                    _NavBarItem(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      label: "Inbox",
-                      index: 2,
-                      isSelected: selectedIndex == 2,
-                      onTap: () => _onTap(2),
-                    ),
-                    _NavBarItem(
-                      icon: Icons.person_outline_rounded,
-                      label: "Profile",
-                      index: 3,
-                      isSelected: selectedIndex == 3,
-                      onTap: () => _onTap(3),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

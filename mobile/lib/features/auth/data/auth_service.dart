@@ -26,11 +26,12 @@ class AuthService extends _$AuthService {
     }
   }
 
-  Future<void> register(String email, String password) async {
+  Future<void> register(String email, String password, {String? name}) async {
     try {
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
+        data: name != null ? {'full_name': name} : null,
       );
       if (response.user == null) {
         throw Exception('Registration failed: unknown error');

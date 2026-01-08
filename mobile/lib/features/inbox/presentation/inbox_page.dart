@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:ui'; // For BackdropFilter
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
@@ -26,7 +27,7 @@ class _InboxPageState extends State<InboxPage> {
       avatarColor: Colors.purpleAccent,
       hasBadge: true,
       badgeLabel: "OFFER",
-      badgeColor: const Color(0xFF00E676),
+      badgeColor: const Color(0xFF00C853),
       isUnread: true,
       type: "Offer",
     ),
@@ -65,7 +66,7 @@ class _InboxPageState extends State<InboxPage> {
       avatarColor: Colors.redAccent,
       hasBadge: true,
       badgeLabel: "OFFER",
-      badgeColor: const Color(0xFF00E676),
+      badgeColor: const Color(0xFF00C853),
       isUnread: false,
       type: "Offer",
     ),
@@ -86,129 +87,168 @@ class _InboxPageState extends State<InboxPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              // Custom Header
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Dynamic Background
+          if (isDark) ...[
+            Positioned(
+              top: -100,
+              right: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.purpleAccent.withOpacity(0.08),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purpleAccent.withOpacity(0.15),
+                      blurRadius: 120,
+                      spreadRadius: 60,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 150,
+              left: -50,
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.orangeAccent.withOpacity(0.05),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orangeAccent.withOpacity(0.1),
+                      blurRadius: 100,
+                      spreadRadius: 40,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // 3. Light Overlay for contrast
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.4),
+              ),
+            ),
+          ],
+
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children: [
+                  // Custom Header
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "Inbox",
-                          style: GoogleFonts.outfit(
-                            color: theme.textTheme.titleLarge?.color,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Opportunities & Requests",
-                          style: GoogleFonts.outfit(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.7),
-                            fontSize: 14,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "COMMUNICATIONS",
+                              style: GoogleFonts.spaceMono(
+                                  color: theme.textTheme.bodyMedium?.color
+                                      ?.withOpacity(0.6),
+                                  fontSize: 10,
+                                  letterSpacing: 3,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "INBOX LINK",
+                              style: GoogleFonts.outfit(
+                                  color: theme.textTheme.titleLarge?.color,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    _buildProfileAvatar(theme),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: -0.2),
+                  ).animate().fadeIn(delay: 200.ms).slideY(begin: -0.2),
 
-              // Filter Tabs
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _tabs.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final isSelected = _selectedIndex == index;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedIndex = index),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (isDark ? Colors.white : theme.primaryColor)
-                              : (isDark ? theme.cardColor : Colors.grey[200]),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
+                  // Filter Tabs
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _tabs.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final isSelected = _selectedIndex == index;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedIndex = index),
+                          child: AnimatedContainer(
+                            duration: 200.ms,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
                               color: isSelected
                                   ? (isDark ? Colors.white : theme.primaryColor)
-                                  : (isDark
-                                      ? theme.dividerColor
-                                      : Colors.grey[400]!)),
-                        ),
-                        child: Text(
-                          _tabs[index],
-                          style: GoogleFonts.outfit(
-                            color: isSelected
-                                ? (isDark ? Colors.black : Colors.white)
-                                : (isDark
-                                    ? theme.textTheme.bodyMedium?.color
-                                    : Colors.black87),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                  color: isSelected
+                                      ? Colors.transparent
+                                      : (isDark
+                                          ? theme.dividerColor.withOpacity(0.3)
+                                          : Colors.grey[400]!)),
+                            ),
+                            child: Text(
+                              _tabs[index].toUpperCase(),
+                              style: GoogleFonts.spaceMono(
+                                  color: isSelected
+                                      ? (isDark ? Colors.black : Colors.white)
+                                      : (isDark
+                                          ? theme.textTheme.bodyMedium?.color
+                                          : Colors.black87),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1),
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ).animate().fadeIn(delay: 400.ms),
+                        );
+                      },
+                    ),
+                  ).animate().fadeIn(delay: 400.ms),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Message List
-              Container(
-                width: double.infinity,
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height * 0.7,
-                ),
-                decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF161616) : theme.cardColor,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(32)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      )
-                    ]),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(24),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredMessages.length,
-                  separatorBuilder: (context, index) =>
-                      Divider(color: theme.dividerColor, height: 32),
-                  itemBuilder: (context, index) {
-                    return _buildMessageTile(filteredMessages[index], theme);
-                  },
-                ),
-              ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
-            ],
+                  // Message List
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredMessages.length,
+                      itemBuilder: (context, index) {
+                        return _buildMessageTile(
+                            filteredMessages[index], theme, isDark);
+                      },
+                    ),
+                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildMessageTile(_MessageItem item, ThemeData theme) {
+  Widget _buildMessageTile(_MessageItem item, ThemeData theme, bool isDark) {
     return GestureDetector(
       onTap: () {
         context.push('/chat', extra: {
@@ -218,35 +258,47 @@ class _InboxPageState extends State<InboxPage> {
         });
       },
       child: Container(
-        color: Colors.transparent,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? theme.dividerColor.withOpacity(0.05)
+                : Colors.grey.withOpacity(0.1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar
+            // Simple Avatar
             Container(
-              width: 48,
-              height: 48,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [item.avatarColor, item.avatarColor.withOpacity(0.5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
+                color: item.avatarColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
                 child: Text(
                   item.senderName[0],
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    color: item.avatarColor,
                     fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 16),
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +306,7 @@ class _InboxPageState extends State<InboxPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Text(
                           item.senderName,
                           maxLines: 1,
@@ -262,94 +314,67 @@ class _InboxPageState extends State<InboxPage> {
                           style: GoogleFonts.outfit(
                             color: theme.textTheme.titleLarge?.color,
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       Text(
                         item.time,
                         style: GoogleFonts.outfit(
-                          color: item.isUnread
-                              ? Colors.blueAccent
-                              : theme.textTheme.bodySmall?.color,
+                          color: theme.textTheme.bodySmall?.color
+                              ?.withOpacity(0.5),
                           fontSize: 12,
-                          fontWeight: item.isUnread
-                              ? FontWeight.bold
-                              : FontWeight.normal,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     item.senderRole,
                     style: GoogleFonts.outfit(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                      color: theme.primaryColor.withOpacity(0.8),
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     item.message,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(
-                      color: item.isUnread
-                          ? theme.textTheme.bodyLarge?.color
-                          : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      color:
+                          theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                       fontSize: 14,
                       height: 1.4,
                       fontWeight:
                           item.isUnread ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
-                  if (item.hasBadge) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: item.badgeColor!.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        item.badgeLabel!,
-                        style: GoogleFonts.outfit(
-                          color: item.badgeColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ]
                 ],
               ),
             ),
+            if (item.isUnread)
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 20),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildProfileAvatar(ThemeData theme) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        shape: BoxShape.circle,
-        border: Border.all(color: theme.dividerColor),
-        image: const DecorationImage(
-          image: AssetImage('assets/profile_pic.jpg'), // Fallback
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: const Icon(Icons.person, color: Colors.grey),
-    );
-  }
-}
+} // Properly closing the class here
 
 class _MessageItem {
+  // Re-declaring this helper class outside
   final String senderName;
   final String senderRole;
   final String message;

@@ -19,6 +19,8 @@ import '../../features/profile/presentation/experience_page.dart';
 import '../../features/profile/presentation/terms_page.dart';
 import '../../features/profile/presentation/earnings_page.dart';
 import '../../features/profile/presentation/settings_page.dart';
+import '../../features/subscription/presentation/subscription_page.dart';
+import '../../features/onboarding/presentation/onboarding_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -35,6 +37,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
         path: '/notifications',
@@ -135,6 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const SubscriptionPage(),
       ),
     ],
   );

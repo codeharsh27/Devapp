@@ -378,76 +378,166 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
   }
 
   void _showStartDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
-        backgroundColor: theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1A1A1A), Color(0xFF0D0D0D)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Animated Pulse Icon
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.blueAccent.withOpacity(0.1),
+                  color: const Color(0xFF00C853).withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00C853).withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    )
+                  ],
                 ),
                 child: const Icon(Icons.timer_outlined,
-                    color: Colors.blueAccent, size: 40),
-              ),
-              const SizedBox(height: 20),
+                    color: Color(0xFF00C853), size: 48),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+                  begin: const Offset(1, 1),
+                  end: const Offset(1.1, 1.1),
+                  duration: 1.seconds),
+
+              const SizedBox(height: 32),
+
               Text(
-                "Mission Briefing",
-                style: GoogleFonts.outfit(
-                  color: theme.textTheme.titleLarge?.color,
-                  fontSize: 22,
+                "MISSION ACCEPTANCE",
+                style: GoogleFonts.spaceMono(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 12,
+                  letterSpacing: 4,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Text(
-                "You are about to start a timed mission.\nYou have ${widget.drop.timeLimitMinutes} minutes to complete this task.\n\nThe timer will begin immediately after you confirm.",
-                textAlign: TextAlign.center,
+                "Initialize Timer?",
                 style: GoogleFonts.outfit(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
-                  fontSize: 15,
-                  height: 1.5,
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Start the mission tracking
-                    ref.read(currentDropProvider.notifier).setDrop(widget.drop);
-                    Navigator.of(context).pop();
-                    context.push('/execution', extra: widget.drop);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white : Colors.black,
-                    foregroundColor: isDark ? Colors.black : Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    "I'm Ready",
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-                  ),
+
+              // Time Block
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.history_toggle_off,
+                        color: Colors.white70, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      "${widget.drop.timeLimitMinutes} MINUTES",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              TextButton(
-                  onPressed: () => context.pop(),
-                  child: Text("Cancel",
-                      style: GoogleFonts.outfit(color: Colors.grey)))
+
+              const SizedBox(height: 32),
+              Text(
+                "Once initialized, this mission session cannot be paused. Ensure your environment is ready for execution.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => context.pop(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text("ABORT",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white.withOpacity(0.4),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          )),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Start the mission tracking
+                        ref
+                            .read(currentDropProvider.notifier)
+                            .setDrop(widget.drop);
+                        Navigator.of(context).pop();
+                        context.push('/execution', extra: widget.drop);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00C853),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                        shadowColor: const Color(0xFF00C853).withOpacity(0.5),
+                      ),
+                      child: Text(
+                        "EXECUTE",
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

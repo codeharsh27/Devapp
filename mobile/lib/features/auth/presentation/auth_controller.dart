@@ -22,10 +22,12 @@ class AuthController extends _$AuthController {
     }
   }
 
-  Future<bool> register(String email, String password) async {
+  Future<bool> register(String email, String password, {String? name}) async {
     state = const AsyncValue.loading();
     try {
-      await ref.read(authServiceProvider.notifier).register(email, password);
+      await ref
+          .read(authServiceProvider.notifier)
+          .register(email, password, name: name);
 
       // Note: If email confirmation is enabled in Supabase, the user won't be logged in yet.
       // If disabled, they are logged in. We'll assume success redirects.
