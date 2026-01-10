@@ -10,6 +10,7 @@ import 'current_drop_provider.dart';
 import 'saved_drops_provider.dart';
 
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class DropDetailPage extends ConsumerStatefulWidget {
   final Drop drop;
@@ -245,13 +246,34 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                             letterSpacing: 2,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
-                    Text(
-                      widget.drop.description,
-                      style: GoogleFonts.outfit(
-                        color: theme.textTheme.bodyMedium?.color,
-                        fontSize: 17,
-                        height: 1.6,
-                        fontWeight: FontWeight.w300,
+                    MarkdownBody(
+                      data: widget.drop.description,
+                      styleSheet: MarkdownStyleSheet(
+                        p: GoogleFonts.outfit(
+                          color: theme.textTheme.bodyMedium?.color,
+                          fontSize: 16,
+                          height: 1.6,
+                          fontWeight: FontWeight.w300,
+                        ),
+                        h1: GoogleFonts.outfit(
+                            color: theme.textTheme.titleLarge?.color,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold),
+                        h2: GoogleFonts.outfit(
+                            color: theme.textTheme.titleLarge?.color,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
+                        code: GoogleFonts.firaCode(
+                          color:
+                              isDark ? Colors.amberAccent : Colors.deepPurple,
+                          backgroundColor: theme.cardColor
+                              .withOpacity(0.5), // Subtle code bg
+                          fontSize: 14,
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: theme.cardColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 40),

@@ -15,6 +15,9 @@ _$DropImpl _$$DropImplFromJson(Map<String, dynamic> json) => _$DropImpl(
       timeLimitMinutes: (json['time_limit_minutes'] as num).toInt(),
       rewardXp: (json['reward_xp'] as num).toInt(),
       inputsUrl: json['inputs_url'] as String?,
+      sourceUrl: json['source_url'] as String?,
+      sourceType: json['source_type'] as String? ?? 'A',
+      submissionType: json['submission_type'] as String? ?? 'code',
     );
 
 Map<String, dynamic> _$$DropImplToJson(_$DropImpl instance) =>
@@ -27,4 +30,7 @@ Map<String, dynamic> _$$DropImplToJson(_$DropImpl instance) =>
       'time_limit_minutes': instance.timeLimitMinutes,
       'reward_xp': instance.rewardXp,
       'inputs_url': instance.inputsUrl,
+      'source_url': instance.sourceUrl,
+      'source_type': instance.sourceType,
+      'submission_type': instance.submissionType,
     };

@@ -20,7 +20,8 @@ import '../../features/profile/presentation/terms_page.dart';
 import '../../features/profile/presentation/earnings_page.dart';
 import '../../features/profile/presentation/settings_page.dart';
 import '../../features/subscription/presentation/subscription_page.dart';
-import '../../features/onboarding/presentation/onboarding_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/onboarding/presentation/pages/select_class_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -145,6 +146,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/subscription',
         builder: (context, state) => const SubscriptionPage(),
+      ),
+      GoRoute(
+        path: '/select-class',
+        builder: (context, state) => const SelectClassPage(),
       ),
     ],
   );

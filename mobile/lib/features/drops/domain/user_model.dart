@@ -21,6 +21,9 @@ class UserStats with _$UserStats {
     required int level,
     @JsonKey(name: 'completed_drops') required int completedDrops,
     required String rank,
+    @JsonKey(name: 'xp_breakdown')
+    @Default({})
+    Map<String, dynamic> xpBreakdown,
   }) = _UserStats;
 
   factory UserStats.fromJson(Map<String, dynamic> json) =>

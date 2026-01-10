@@ -14,6 +14,9 @@ class Drop with _$Drop {
     @JsonKey(name: 'time_limit_minutes') required int timeLimitMinutes,
     @JsonKey(name: 'reward_xp') required int rewardXp,
     @JsonKey(name: 'inputs_url') String? inputsUrl,
+    @JsonKey(name: 'source_url') String? sourceUrl,
+    @JsonKey(name: 'source_type') @Default('A') String sourceType,
+    @JsonKey(name: 'submission_type') @Default('code') String submissionType,
   }) = _Drop;
 
   factory Drop.fromJson(Map<String, dynamic> json) => _$DropFromJson(json);

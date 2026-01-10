@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_controller.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -34,7 +35,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
 
     if (success && mounted) {
-      context.go('/');
+      final prefs = await SharedPreferences.getInstance();
+      final hasSelectedClass = prefs.getBool('has_selected_class') ?? false;
+
+      if (!hasSelectedClass) {
+        context.go('/select-class');
+      } else {
+        context.go('/home');
+      }
     }
   }
 

@@ -31,6 +31,12 @@ mixin _$Drop {
   int get rewardXp => throw _privateConstructorUsedError;
   @JsonKey(name: 'inputs_url')
   String? get inputsUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'source_url')
+  String? get sourceUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'source_type')
+  String get sourceType => throw _privateConstructorUsedError;
+  @JsonKey(name: 'submission_type')
+  String get submissionType => throw _privateConstructorUsedError;
 
   /// Serializes this Drop to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,7 +60,10 @@ abstract class $DropCopyWith<$Res> {
       String difficulty,
       @JsonKey(name: 'time_limit_minutes') int timeLimitMinutes,
       @JsonKey(name: 'reward_xp') int rewardXp,
-      @JsonKey(name: 'inputs_url') String? inputsUrl});
+      @JsonKey(name: 'inputs_url') String? inputsUrl,
+      @JsonKey(name: 'source_url') String? sourceUrl,
+      @JsonKey(name: 'source_type') String sourceType,
+      @JsonKey(name: 'submission_type') String submissionType});
 }
 
 /// @nodoc
@@ -80,6 +89,9 @@ class _$DropCopyWithImpl<$Res, $Val extends Drop>
     Object? timeLimitMinutes = null,
     Object? rewardXp = null,
     Object? inputsUrl = freezed,
+    Object? sourceUrl = freezed,
+    Object? sourceType = null,
+    Object? submissionType = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -114,6 +126,18 @@ class _$DropCopyWithImpl<$Res, $Val extends Drop>
           ? _value.inputsUrl
           : inputsUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      sourceUrl: freezed == sourceUrl
+          ? _value.sourceUrl
+          : sourceUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sourceType: null == sourceType
+          ? _value.sourceType
+          : sourceType // ignore: cast_nullable_to_non_nullable
+              as String,
+      submissionType: null == submissionType
+          ? _value.submissionType
+          : submissionType // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -133,7 +157,10 @@ abstract class _$$DropImplCopyWith<$Res> implements $DropCopyWith<$Res> {
       String difficulty,
       @JsonKey(name: 'time_limit_minutes') int timeLimitMinutes,
       @JsonKey(name: 'reward_xp') int rewardXp,
-      @JsonKey(name: 'inputs_url') String? inputsUrl});
+      @JsonKey(name: 'inputs_url') String? inputsUrl,
+      @JsonKey(name: 'source_url') String? sourceUrl,
+      @JsonKey(name: 'source_type') String sourceType,
+      @JsonKey(name: 'submission_type') String submissionType});
 }
 
 /// @nodoc
@@ -156,6 +183,9 @@ class __$$DropImplCopyWithImpl<$Res>
     Object? timeLimitMinutes = null,
     Object? rewardXp = null,
     Object? inputsUrl = freezed,
+    Object? sourceUrl = freezed,
+    Object? sourceType = null,
+    Object? submissionType = null,
   }) {
     return _then(_$DropImpl(
       id: null == id
@@ -190,6 +220,18 @@ class __$$DropImplCopyWithImpl<$Res>
           ? _value.inputsUrl
           : inputsUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      sourceUrl: freezed == sourceUrl
+          ? _value.sourceUrl
+          : sourceUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sourceType: null == sourceType
+          ? _value.sourceType
+          : sourceType // ignore: cast_nullable_to_non_nullable
+              as String,
+      submissionType: null == submissionType
+          ? _value.submissionType
+          : submissionType // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -205,7 +247,10 @@ class _$DropImpl implements _Drop {
       required this.difficulty,
       @JsonKey(name: 'time_limit_minutes') required this.timeLimitMinutes,
       @JsonKey(name: 'reward_xp') required this.rewardXp,
-      @JsonKey(name: 'inputs_url') this.inputsUrl});
+      @JsonKey(name: 'inputs_url') this.inputsUrl,
+      @JsonKey(name: 'source_url') this.sourceUrl,
+      @JsonKey(name: 'source_type') this.sourceType = 'A',
+      @JsonKey(name: 'submission_type') this.submissionType = 'code'});
 
   factory _$DropImpl.fromJson(Map<String, dynamic> json) =>
       _$$DropImplFromJson(json);
@@ -229,10 +274,19 @@ class _$DropImpl implements _Drop {
   @override
   @JsonKey(name: 'inputs_url')
   final String? inputsUrl;
+  @override
+  @JsonKey(name: 'source_url')
+  final String? sourceUrl;
+  @override
+  @JsonKey(name: 'source_type')
+  final String sourceType;
+  @override
+  @JsonKey(name: 'submission_type')
+  final String submissionType;
 
   @override
   String toString() {
-    return 'Drop(id: $id, title: $title, description: $description, domain: $domain, difficulty: $difficulty, timeLimitMinutes: $timeLimitMinutes, rewardXp: $rewardXp, inputsUrl: $inputsUrl)';
+    return 'Drop(id: $id, title: $title, description: $description, domain: $domain, difficulty: $difficulty, timeLimitMinutes: $timeLimitMinutes, rewardXp: $rewardXp, inputsUrl: $inputsUrl, sourceUrl: $sourceUrl, sourceType: $sourceType, submissionType: $submissionType)';
   }
 
   @override
@@ -252,13 +306,30 @@ class _$DropImpl implements _Drop {
             (identical(other.rewardXp, rewardXp) ||
                 other.rewardXp == rewardXp) &&
             (identical(other.inputsUrl, inputsUrl) ||
-                other.inputsUrl == inputsUrl));
+                other.inputsUrl == inputsUrl) &&
+            (identical(other.sourceUrl, sourceUrl) ||
+                other.sourceUrl == sourceUrl) &&
+            (identical(other.sourceType, sourceType) ||
+                other.sourceType == sourceType) &&
+            (identical(other.submissionType, submissionType) ||
+                other.submissionType == submissionType));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, title, description, domain,
-      difficulty, timeLimitMinutes, rewardXp, inputsUrl);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      title,
+      description,
+      domain,
+      difficulty,
+      timeLimitMinutes,
+      rewardXp,
+      inputsUrl,
+      sourceUrl,
+      sourceType,
+      submissionType);
 
   /// Create a copy of Drop
   /// with the given fields replaced by the non-null parameter values.
@@ -285,7 +356,11 @@ abstract class _Drop implements Drop {
       required final String difficulty,
       @JsonKey(name: 'time_limit_minutes') required final int timeLimitMinutes,
       @JsonKey(name: 'reward_xp') required final int rewardXp,
-      @JsonKey(name: 'inputs_url') final String? inputsUrl}) = _$DropImpl;
+      @JsonKey(name: 'inputs_url') final String? inputsUrl,
+      @JsonKey(name: 'source_url') final String? sourceUrl,
+      @JsonKey(name: 'source_type') final String sourceType,
+      @JsonKey(name: 'submission_type')
+      final String submissionType}) = _$DropImpl;
 
   factory _Drop.fromJson(Map<String, dynamic> json) = _$DropImpl.fromJson;
 
@@ -308,6 +383,15 @@ abstract class _Drop implements Drop {
   @override
   @JsonKey(name: 'inputs_url')
   String? get inputsUrl;
+  @override
+  @JsonKey(name: 'source_url')
+  String? get sourceUrl;
+  @override
+  @JsonKey(name: 'source_type')
+  String get sourceType;
+  @override
+  @JsonKey(name: 'submission_type')
+  String get submissionType;
 
   /// Create a copy of Drop
   /// with the given fields replaced by the non-null parameter values.

@@ -32,7 +32,12 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
     if (mounted) {
       if (isLoggedIn) {
-        context.go('/home');
+        final hasSelectedClass = prefs.getBool('has_selected_class') ?? false;
+        if (hasSelectedClass) {
+          context.go('/home');
+        } else {
+          context.go('/select-class');
+        }
       } else if (!seenOnboarding) {
         context.go('/onboarding');
       } else {

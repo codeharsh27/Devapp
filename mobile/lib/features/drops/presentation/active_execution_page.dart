@@ -13,6 +13,7 @@ import '../data/drops_repository.dart';
 import 'current_drop_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ActiveExecutionPage extends ConsumerStatefulWidget {
   final Drop drop;
@@ -66,11 +67,102 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
     if (startTimeMillis == null) {
       _missionStartTime = DateTime.now();
       await prefs.setInt(key, _missionStartTime!.millisecondsSinceEpoch);
+
+      // If Source B (External), show redirect dialog instead of instant launch
+      if (widget.drop.sourceType == 'B' && widget.drop.sourceUrl != null) {
+        // We delay slightly to let the UI build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showRedirectDialog();
+        });
+      }
     } else {
       _missionStartTime = DateTime.fromMillisecondsSinceEpoch(startTimeMillis);
     }
 
     _updateTimeLeft();
+  }
+
+  Future<void> _showRedirectDialog() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(
+                  color: Colors.blueAccent,
+                  strokeWidth: 3,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                "CONNECTING TO SOURCE",
+                style: GoogleFonts.spaceMono(
+                  color: Colors.blueAccent,
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Redirecting to GitHub Repository...",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Artificial Delay for Effect
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      Navigator.of(context).pop(); // Close Dialog
+      _launchSourceUrl(); // Finally Launch
+    }
+  }
+
+  Future<void> _launchSourceUrl() async {
+    if (widget.drop.sourceUrl == null) return;
+    final uri = Uri.parse(widget.drop.sourceUrl!);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw 'Could not launch $uri';
+      }
+    } catch (e) {
+      debugPrint("Could not launch URL: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not open GitHub link: $e")),
+        );
+      }
+    }
   }
 
   void _updateTimeLeft() {
@@ -96,6 +188,12 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
           _timeLeft = remaining;
           _isLoadingTimer = false;
           if (!_isTimerRunning) {
+            // Start Notification (One-time trigger when entering active state)
+            NotificationService().showMissionTimer(
+              widget.drop,
+              _missionStartTime!
+                  .add(Duration(minutes: widget.drop.timeLimitMinutes)),
+            );
             _startTimer();
           }
         }
@@ -249,15 +347,26 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (_score != null)
-                Text(
-                  "Score: $_score/100",
-                  style: GoogleFonts.outfit(
-                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                "Score: $_score/100",
+                style: GoogleFonts.outfit(
+                  color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              if (isSuccess) ...[
+                const SizedBox(height: 8),
+                Text(
+                  "+${widget.drop.rewardXp} ${widget.drop.domain.toUpperCase()} XP",
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFF00C853),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ).animate().scale(delay: 300.ms, curve: Curves.elasticOut),
+              ],
               const SizedBox(height: 8),
               if (_feedback != null)
                 Text(
@@ -557,14 +666,52 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                     ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1),
                     const SizedBox(height: 32),
 
-                    // 1. GitHub Link
-                    _buildInputField(
-                            label: "GitHub / Project URL",
-                            hint: "Has to be public repo link",
-                            controller: _projectUrlController,
-                            icon: Icons.code_rounded)
-                        .animate()
-                        .fadeIn(delay: 300.ms),
+                    // 0. External Source Link (Source B)
+                    if (widget.drop.sourceType == 'B' &&
+                        widget.drop.sourceUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _launchSourceUrl,
+                            icon:
+                                const Icon(Icons.open_in_new_rounded, size: 20),
+                            label: Text(
+                                widget.drop.submissionType == 'code'
+                                    ? "View Source on GitHub"
+                                    : "View Mission Brief",
+                                style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: Colors.blueAccent),
+                              foregroundColor: Colors.blueAccent,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ).animate().fadeIn(delay: 250.ms),
+                      ),
+
+                    // 1. Submission Input Fields (Dynamic based on Type)
+                    if (widget.drop.submissionType == 'code' ||
+                        widget.drop.submissionType == null)
+                      _buildInputField(
+                              label: "GitHub / Project URL",
+                              hint: "Has to be public repo link",
+                              controller: _projectUrlController,
+                              icon: Icons.code_rounded)
+                          .animate()
+                          .fadeIn(delay: 300.ms)
+                    else if (widget.drop.submissionType == 'link')
+                      _buildInputField(
+                              label: "Project Link",
+                              hint: "Figma, Website, or Doc Link",
+                              controller: _projectUrlController,
+                              icon: Icons.link_rounded)
+                          .animate()
+                          .fadeIn(delay: 300.ms),
 
                     const SizedBox(height: 24),
 

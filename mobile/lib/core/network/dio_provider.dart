@@ -19,7 +19,7 @@ Dio dio(Ref ref) {
   //    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find your IPv4.
   //    Your phone must be on the same WiFi network.
   //    Ensure backend runs with `--host 0.0.0.0`.
-  const String localLanIp = 'http://192.168.1.4:8000';
+  const String localLanIp = 'http://10.143.160.149:8000';
 
   // 3. EMULATOR URL
   //    Standard Android Emulator IP that maps to host localhost.
@@ -49,8 +49,8 @@ Dio dio(Ref ref) {
 
   final dio = Dio(BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
   ));
 
   // Add Auth Interceptor & Logging

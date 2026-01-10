@@ -5,12 +5,15 @@ from .models import DifficultyLevel, SubmissionStatus
 
 class DropBase(BaseModel):
     title: str
-    description: str
-    domain: str
-    difficulty: DifficultyLevel
-    time_limit_minutes: int
-    reward_xp: int
+    description: Optional[str] = None
+    domain: Optional[str] = None
+    difficulty: Optional[DifficultyLevel] = DifficultyLevel.EASY
+    time_limit_minutes: Optional[int] = 60
+    reward_xp: Optional[int] = 100
     inputs_url: Optional[str] = None
+    source_url: Optional[str] = None
+    source_type: Optional[str] = "A"
+    submission_type: Optional[str] = "code"
 
 class DropCreate(DropBase):
     pass
@@ -54,6 +57,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserClassUpdate(BaseModel):
+    domain: str
+
 class User(UserBase):
     id: str
     # created_at removed to match models.User which lacks this column
@@ -73,3 +79,4 @@ class UserStats(BaseModel):
     level: int
     completed_drops: int
     rank: str = "Novice"
+    xp_breakdown: Optional[dict] = {}

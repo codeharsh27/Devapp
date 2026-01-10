@@ -1,30 +1,17 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'user_model.dart';
+part of 'user_stats.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
-      id: (json['id'] as num).toInt(),
-      email: json['email'] as String,
-      fullName: json['full_name'] as String?,
-    );
-
-Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'email': instance.email,
-      'full_name': instance.fullName,
-    };
-
 _$UserStatsImpl _$$UserStatsImplFromJson(Map<String, dynamic> json) =>
     _$UserStatsImpl(
-      totalXp: (json['total_xp'] as num).toInt(),
-      level: (json['level'] as num).toInt(),
-      completedDrops: (json['completed_drops'] as num).toInt(),
-      rank: json['rank'] as String,
+      totalXp: (json['total_xp'] as num?)?.toInt() ?? 0,
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      completedDrops: (json['completed_drops'] as num?)?.toInt() ?? 0,
+      rank: json['rank'] as String? ?? 'Novice',
       xpBreakdown: json['xp_breakdown'] as Map<String, dynamic>? ?? const {},
     );
 
