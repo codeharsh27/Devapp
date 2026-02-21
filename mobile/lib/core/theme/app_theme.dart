@@ -72,7 +72,7 @@ class AppTheme {
       colorScheme: const ColorScheme.dark(
         primary: primaryColor,
         surface: darkSurface,
-        background: darkBackground,
+        onSurface: darkTextPrimary,
         secondary: primaryColor,
       ),
       iconTheme: const IconThemeData(color: Colors.white70),
@@ -98,7 +98,7 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         surface: lightSurface,
-        background: lightBackground,
+        onSurface: lightTextPrimary,
         secondary: primaryColor,
       ),
       iconTheme: const IconThemeData(color: Colors.black54),

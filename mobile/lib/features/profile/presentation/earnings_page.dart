@@ -9,6 +9,7 @@ class EarningsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Placeholder / Construction State
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -28,8 +29,7 @@ class EarningsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Balance Card (Kept mostly static as it's a specific gradient design,
-            // but text colors adapted for contrast if needed)
+            // Balance Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(32),
@@ -45,7 +45,7 @@ class EarningsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00C853).withOpacity(0.4),
+                      color: const Color(0xFF00C853).withValues(alpha: 0.4),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     )
@@ -77,7 +77,7 @@ class EarningsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "\$1,250.00",
+                    "0 Rs",
                     style: GoogleFonts.outfit(
                       fontSize: 48,
                       fontWeight: FontWeight.w800,
@@ -89,7 +89,7 @@ class EarningsPage extends StatelessWidget {
                       .scale(duration: 500.ms, curve: Curves.easeOutBack),
                   const SizedBox(height: 8),
                   Text(
-                    "+ \$250.00 this month",
+                    "Start completing tasks!",
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -100,9 +100,10 @@ class EarningsPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: null, // Disabled
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
+                        disabledBackgroundColor: Colors.black38,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -112,7 +113,8 @@ class EarningsPage extends StatelessWidget {
                       ),
                       child: Text("WITHDRAW FUNDS",
                           style: GoogleFonts.spaceMono(
-                              fontWeight: FontWeight.bold)),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white54)),
                     ),
                   )
                 ],
@@ -121,145 +123,43 @@ class EarningsPage extends StatelessWidget {
                 .animate()
                 .slideY(begin: 0.2, duration: 600.ms, curve: Curves.easeOut),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 60),
 
-            // Analytics Section
-            Text("ANALYTICS",
-                style: GoogleFonts.spaceMono(
-                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAnalyticCard(
-                      context, "Pending", "\$120", Colors.orangeAccent),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildAnalyticCard(
-                      context, "Projects", "12", Colors.blueAccent),
-                ),
-              ],
-            ).animate().fadeIn(delay: 300.ms),
-
-            const SizedBox(height: 40),
-
-            // Transaction History
-            Text("HISTORY",
-                style: GoogleFonts.spaceMono(
-                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            _buildHistoryItem(context, "Project Alpha Payout", "+ \$450.00",
-                "Today, 10:23 AM", true),
-            _buildHistoryItem(context, "Bug Bounty: Critical", "+ \$500.00",
-                "Jan 12, 2024", true),
-            _buildHistoryItem(context, "Withdrawal to Bank", "- \$1,000.00",
-                "Jan 10, 2024", false),
-            _buildHistoryItem(
-                context, "Micro-Correction", "+ \$50.00", "Jan 05, 2024", true),
+            // Construction / Warning Message
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.construction_rounded,
+                      size: 64,
+                      color: theme.textTheme.bodyMedium?.color
+                          ?.withValues(alpha: 0.2)),
+                  const SizedBox(height: 24),
+                  Text(
+                    "PAGE UNDER CONSTRUCTION",
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "This section is currently being built.\nPlease complete tasks to unlock earnings.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: theme.textTheme.bodyMedium?.color
+                          ?.withValues(alpha: 0.6),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+            ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildAnalyticCard(
-      BuildContext context, String label, String value, Color color) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(height: 12),
-          Text(value,
-              style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.bodyLarge?.color)),
-          Text(label,
-              style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem(BuildContext context, String title, String amount,
-      String date, bool isIncoming) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isIncoming
-                      ? const Color(0xFF00C853).withOpacity(0.1)
-                      : theme.dividerColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                    isIncoming ? Icons.arrow_downward : Icons.arrow_upward,
-                    color: isIncoming
-                        ? const Color(0xFF00C853)
-                        : theme.iconTheme.color?.withOpacity(0.7),
-                    size: 20),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: GoogleFonts.outfit(
-                          color: theme.textTheme.bodyLarge?.color,
-                          fontWeight: FontWeight.w600)),
-                  Text(date,
-                      style: GoogleFonts.spaceMono(
-                          color: theme.textTheme.bodyMedium?.color
-                              ?.withOpacity(0.5),
-                          fontSize: 10)),
-                ],
-              ),
-            ],
-          ),
-          Text(
-            amount,
-            style: GoogleFonts.outfit(
-                color: isIncoming
-                    ? const Color(0xFF00C853)
-                    : theme.textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.bold,
-                fontSize: 16),
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideX(begin: 0.1);
   }
 }

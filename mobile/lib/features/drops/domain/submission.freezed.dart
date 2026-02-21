@@ -27,11 +27,14 @@ mixin _$Submission {
   String get userId => throw _privateConstructorUsedError;
   @JsonKey(name: 'submission_url')
   String get submissionUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'image_url')
+  String? get imageUrl => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
   int? get score => throw _privateConstructorUsedError;
   String? get feedback => throw _privateConstructorUsedError;
   @JsonKey(name: 'submitted_at')
   DateTime get submittedAt => throw _privateConstructorUsedError;
+  Drop? get drop => throw _privateConstructorUsedError;
 
   /// Serializes this Submission to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,10 +57,14 @@ abstract class $SubmissionCopyWith<$Res> {
       @JsonKey(name: 'drop_id') int dropId,
       @JsonKey(name: 'user_id') String userId,
       @JsonKey(name: 'submission_url') String submissionUrl,
+      @JsonKey(name: 'image_url') String? imageUrl,
       String status,
       int? score,
       String? feedback,
-      @JsonKey(name: 'submitted_at') DateTime submittedAt});
+      @JsonKey(name: 'submitted_at') DateTime submittedAt,
+      Drop? drop});
+
+  $DropCopyWith<$Res>? get drop;
 }
 
 /// @nodoc
@@ -79,10 +86,12 @@ class _$SubmissionCopyWithImpl<$Res, $Val extends Submission>
     Object? dropId = null,
     Object? userId = null,
     Object? submissionUrl = null,
+    Object? imageUrl = freezed,
     Object? status = null,
     Object? score = freezed,
     Object? feedback = freezed,
     Object? submittedAt = null,
+    Object? drop = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -101,6 +110,10 @@ class _$SubmissionCopyWithImpl<$Res, $Val extends Submission>
           ? _value.submissionUrl
           : submissionUrl // ignore: cast_nullable_to_non_nullable
               as String,
+      imageUrl: freezed == imageUrl
+          ? _value.imageUrl
+          : imageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -117,7 +130,25 @@ class _$SubmissionCopyWithImpl<$Res, $Val extends Submission>
           ? _value.submittedAt
           : submittedAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      drop: freezed == drop
+          ? _value.drop
+          : drop // ignore: cast_nullable_to_non_nullable
+              as Drop?,
     ) as $Val);
+  }
+
+  /// Create a copy of Submission
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $DropCopyWith<$Res>? get drop {
+    if (_value.drop == null) {
+      return null;
+    }
+
+    return $DropCopyWith<$Res>(_value.drop!, (value) {
+      return _then(_value.copyWith(drop: value) as $Val);
+    });
   }
 }
 
@@ -134,10 +165,15 @@ abstract class _$$SubmissionImplCopyWith<$Res>
       @JsonKey(name: 'drop_id') int dropId,
       @JsonKey(name: 'user_id') String userId,
       @JsonKey(name: 'submission_url') String submissionUrl,
+      @JsonKey(name: 'image_url') String? imageUrl,
       String status,
       int? score,
       String? feedback,
-      @JsonKey(name: 'submitted_at') DateTime submittedAt});
+      @JsonKey(name: 'submitted_at') DateTime submittedAt,
+      Drop? drop});
+
+  @override
+  $DropCopyWith<$Res>? get drop;
 }
 
 /// @nodoc
@@ -157,10 +193,12 @@ class __$$SubmissionImplCopyWithImpl<$Res>
     Object? dropId = null,
     Object? userId = null,
     Object? submissionUrl = null,
+    Object? imageUrl = freezed,
     Object? status = null,
     Object? score = freezed,
     Object? feedback = freezed,
     Object? submittedAt = null,
+    Object? drop = freezed,
   }) {
     return _then(_$SubmissionImpl(
       id: null == id
@@ -179,6 +217,10 @@ class __$$SubmissionImplCopyWithImpl<$Res>
           ? _value.submissionUrl
           : submissionUrl // ignore: cast_nullable_to_non_nullable
               as String,
+      imageUrl: freezed == imageUrl
+          ? _value.imageUrl
+          : imageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -195,6 +237,10 @@ class __$$SubmissionImplCopyWithImpl<$Res>
           ? _value.submittedAt
           : submittedAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      drop: freezed == drop
+          ? _value.drop
+          : drop // ignore: cast_nullable_to_non_nullable
+              as Drop?,
     ));
   }
 }
@@ -207,10 +253,12 @@ class _$SubmissionImpl implements _Submission {
       @JsonKey(name: 'drop_id') required this.dropId,
       @JsonKey(name: 'user_id') required this.userId,
       @JsonKey(name: 'submission_url') required this.submissionUrl,
+      @JsonKey(name: 'image_url') this.imageUrl,
       required this.status,
       this.score,
       this.feedback,
-      @JsonKey(name: 'submitted_at') required this.submittedAt});
+      @JsonKey(name: 'submitted_at') required this.submittedAt,
+      this.drop});
 
   factory _$SubmissionImpl.fromJson(Map<String, dynamic> json) =>
       _$$SubmissionImplFromJson(json);
@@ -227,6 +275,9 @@ class _$SubmissionImpl implements _Submission {
   @JsonKey(name: 'submission_url')
   final String submissionUrl;
   @override
+  @JsonKey(name: 'image_url')
+  final String? imageUrl;
+  @override
   final String status;
   @override
   final int? score;
@@ -235,10 +286,12 @@ class _$SubmissionImpl implements _Submission {
   @override
   @JsonKey(name: 'submitted_at')
   final DateTime submittedAt;
+  @override
+  final Drop? drop;
 
   @override
   String toString() {
-    return 'Submission(id: $id, dropId: $dropId, userId: $userId, submissionUrl: $submissionUrl, status: $status, score: $score, feedback: $feedback, submittedAt: $submittedAt)';
+    return 'Submission(id: $id, dropId: $dropId, userId: $userId, submissionUrl: $submissionUrl, imageUrl: $imageUrl, status: $status, score: $score, feedback: $feedback, submittedAt: $submittedAt, drop: $drop)';
   }
 
   @override
@@ -251,18 +304,21 @@ class _$SubmissionImpl implements _Submission {
             (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.submissionUrl, submissionUrl) ||
                 other.submissionUrl == submissionUrl) &&
+            (identical(other.imageUrl, imageUrl) ||
+                other.imageUrl == imageUrl) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.score, score) || other.score == score) &&
             (identical(other.feedback, feedback) ||
                 other.feedback == feedback) &&
             (identical(other.submittedAt, submittedAt) ||
-                other.submittedAt == submittedAt));
+                other.submittedAt == submittedAt) &&
+            (identical(other.drop, drop) || other.drop == drop));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, dropId, userId,
-      submissionUrl, status, score, feedback, submittedAt);
+      submissionUrl, imageUrl, status, score, feedback, submittedAt, drop);
 
   /// Create a copy of Submission
   /// with the given fields replaced by the non-null parameter values.
@@ -282,15 +338,16 @@ class _$SubmissionImpl implements _Submission {
 
 abstract class _Submission implements Submission {
   const factory _Submission(
-          {required final int id,
-          @JsonKey(name: 'drop_id') required final int dropId,
-          @JsonKey(name: 'user_id') required final String userId,
-          @JsonKey(name: 'submission_url') required final String submissionUrl,
-          required final String status,
-          final int? score,
-          final String? feedback,
-          @JsonKey(name: 'submitted_at') required final DateTime submittedAt}) =
-      _$SubmissionImpl;
+      {required final int id,
+      @JsonKey(name: 'drop_id') required final int dropId,
+      @JsonKey(name: 'user_id') required final String userId,
+      @JsonKey(name: 'submission_url') required final String submissionUrl,
+      @JsonKey(name: 'image_url') final String? imageUrl,
+      required final String status,
+      final int? score,
+      final String? feedback,
+      @JsonKey(name: 'submitted_at') required final DateTime submittedAt,
+      final Drop? drop}) = _$SubmissionImpl;
 
   factory _Submission.fromJson(Map<String, dynamic> json) =
       _$SubmissionImpl.fromJson;
@@ -307,6 +364,9 @@ abstract class _Submission implements Submission {
   @JsonKey(name: 'submission_url')
   String get submissionUrl;
   @override
+  @JsonKey(name: 'image_url')
+  String? get imageUrl;
+  @override
   String get status;
   @override
   int? get score;
@@ -315,6 +375,8 @@ abstract class _Submission implements Submission {
   @override
   @JsonKey(name: 'submitted_at')
   DateTime get submittedAt;
+  @override
+  Drop? get drop;
 
   /// Create a copy of Submission
   /// with the given fields replaced by the non-null parameter values.

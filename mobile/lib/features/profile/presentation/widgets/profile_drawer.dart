@@ -11,7 +11,8 @@ class ProfileDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final secondaryTextColor =
-        theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? Colors.white70;
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+            Colors.white70;
 
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.75, // "Half" side panel
@@ -24,7 +25,7 @@ class ProfileDrawer extends ConsumerWidget {
               padding: const EdgeInsets.all(24.0),
               child: Text("MENU",
                   style: GoogleFonts.spaceMono(
-                      color: secondaryTextColor.withOpacity(0.5),
+                      color: secondaryTextColor.withValues(alpha: 0.5),
                       letterSpacing: 2,
                       fontWeight: FontWeight.bold)),
             ),
@@ -35,11 +36,13 @@ class ProfileDrawer extends ConsumerWidget {
                 children: [
                   _buildDrawerItem(context, Icons.person_outline,
                       "Edit Profile", () => context.push('/edit-profile')),
-                  _buildDrawerItem(context, Icons.attach_money, "Earnings",
+                  _buildDrawerItem(context, Icons.currency_rupee, "Earnings ",
                       () => context.push('/earnings')),
+                  _buildDrawerItem(context, Icons.leaderboard, "Leaderboard",
+                      () => context.push('/leaderboard')),
                   _buildDrawerItem(context, Icons.card_membership, "Membership",
                       () => context.push('/subscription')),
-                  _buildDrawerItem(context, Icons.work_outline, "Experience",
+                  _buildDrawerItem(context, Icons.work_outline, "Contribution",
                       () => context.push('/experience')),
                   _buildDrawerItem(context, Icons.settings_outlined, "Settings",
                       () => context.push('/settings')),

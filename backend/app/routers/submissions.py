@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 import asyncio
 import random
 from datetime import datetime
 from .. import models, schemas, database
 from ..dependencies import get_db, get_current_user
+from ..websockets import manager
 
 router = APIRouter(
     tags=["submissions"],
@@ -14,36 +16,59 @@ router = APIRouter(
 # --- BACKGROUND TASKS ---
 
 async def mock_evaluate_submission(submission_id: int):
-    print(f"DEBUG: Starting evaluation for {submission_id}...")
-    """
-    Simulates a time-consuming evaluation process (e.g. running unit tests via Docker).
-    """
-    await asyncio.sleep(5) # Simulate processing time
-    
-    # Randomly assign pass/fail and score
-    # In a real app, this would read from the worker result
-    score = random.randint(0, 100)
-    status_val = models.SubmissionStatus.COMPLETED
-    feedback = "Automated tests passed."
-    
-    if score < 50:
-        status_val = models.SubmissionStatus.FAILED
-        feedback = "Automated tests failed. Check edge cases."
-        
-    # Re-instantiate session for the background task to be safe
-    new_db = database.SessionLocal()
-    try:
-        submission = new_db.query(models.Submission).filter(models.Submission.id == submission_id).first()
-        if submission:
+    # Simulate processing time for "Analysis"
+    await asyncio.sleep(3) 
+
+    # Re-instantiate session for the background task
+    async with database.AsyncSessionLocal() as new_db:
+        try:
+            result = await new_db.execute(select(models.Submission).filter(models.Submission.id == submission_id))
+            submission = result.scalars().first()
+            if not submission:
+                print(f"Submission {submission_id} not found during eval.")
+                return
+
+            # --- REAL EVALUATION LOGIC ---
+            from ..services import evaluation_service
+            
+            score = 0
+            status_val = models.SubmissionStatus.FAILED
+            feedback = "Evaluation failed."
+
+            if submission.submission_url and "github.com" in submission.submission_url:
+                # GitHub Strategy
+                score, feedback = await evaluation_service.evaluate_github_submission(submission.submission_url)
+            else:
+                # Generic Link Strategy (Figma, deployed site)
+                # For now, if it's not GitHub but has text, we give a participation score
+                if submission.submission_url and len(submission.submission_url) > 5:
+                    score = 70
+                    feedback = "External Link verified. Manual review pending for higher score."
+                else:
+                    score = 0
+                    feedback = "Invalid submission link."
+
+            # Pass logic
+            if score >= 50:
+                status_val = models.SubmissionStatus.COMPLETED
+            else:
+                status_val = models.SubmissionStatus.FAILED
+
+            # Update DB
             submission.score = score
             submission.status = status_val
             submission.feedback = feedback
             submission.completed_at = datetime.utcnow()
 
+            drop = None
             # GAMIFICATION UPDATE: Award XP if passed
             if status_val == models.SubmissionStatus.COMPLETED:
-                user = new_db.query(models.User).filter(models.User.id == submission.user_id).first()
-                drop = new_db.query(models.Drop).filter(models.Drop.id == submission.drop_id).first()
+                result_user = await new_db.execute(select(models.User).filter(models.User.id == submission.user_id))
+                user = result_user.scalars().first()
+                
+                result_drop = await new_db.execute(select(models.Drop).filter(models.Drop.id == submission.drop_id))
+                drop = result_drop.scalars().first()
+                
                 if user and drop:
                     user.total_xp = (user.total_xp or 0) + drop.reward_xp
                     
@@ -60,16 +85,26 @@ async def mock_evaluate_submission(submission_id: int):
                     user.level = int(user.total_xp / 1000) + 1
                     
                     # Re-assign to force update
-                    from sqlalchemy import inspect
-                    inspect(user).attrs.xp_breakdown.history.has_changes() # Trigger change detection
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(user, "xp_breakdown")
 
-            new_db.commit()
-            print(f"Evaluated Submission {submission_id}: Score {score}, User XP: {user.total_xp if 'user' in locals() else 'N/A'}")
+            await new_db.commit()
+            print(f"Evaluated Submission {submission_id}: Score {score}, Status {status_val}")
             
-    except Exception as e:
-        print(f"Error in background evaluation: {e}")
-    finally:
-        new_db.close()
+            # WEBSOCKET BROADCAST
+            await manager.send_personal_message({
+                "type": "submission_update",
+                "data": {
+                    "id": submission.id,
+                    "status": status_val.value,  # Convert enum to string
+                    "score": score,
+                    "drop_id": submission.drop_id,
+                    "drop_title": drop.title if drop else "Unknown Drop"
+                }
+            }, submission.user_id)
+                
+        except Exception as e:
+            print(f"Error in background evaluation: {e}")
 
 # --- ENDPOINTS ---
 
@@ -77,7 +112,7 @@ async def mock_evaluate_submission(submission_id: int):
 async def submit_drop(
     submission: schemas.SubmissionCreate, 
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
@@ -85,7 +120,9 @@ async def submit_drop(
     Requires Authentication.
     """
     # Verify drop exists
-    drop = db.query(models.Drop).filter(models.Drop.id == submission.drop_id).first()
+    result = await db.execute(select(models.Drop).filter(models.Drop.id == submission.drop_id))
+    drop = result.scalars().first()
+    
     if not drop:
         raise HTTPException(status_code=404, detail="Drop not found")
     
@@ -99,8 +136,8 @@ async def submit_drop(
     )
     
     db.add(db_submission)
-    db.commit()
-    db.refresh(db_submission)
+    await db.commit()
+    await db.refresh(db_submission)
     
     # Trigger background evaluation
     background_tasks.add_task(mock_evaluate_submission, db_submission.id)
@@ -108,11 +145,13 @@ async def submit_drop(
     return db_submission
 
 @router.get("/submissions/{submission_id}", response_model=schemas.Submission)
-async def get_submission(submission_id: int, db: Session = Depends(get_db)):
+async def get_submission(submission_id: int, db: AsyncSession = Depends(get_db)):
     """
     Get the status and details of a specific submission.
     """
-    submission = db.query(models.Submission).filter(models.Submission.id == submission_id).first()
+    result = await db.execute(select(models.Submission).filter(models.Submission.id == submission_id))
+    submission = result.scalars().first()
+    
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     return submission

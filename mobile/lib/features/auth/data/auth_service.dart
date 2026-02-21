@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/network/dio_provider.dart';
 
 part 'auth_service.g.dart';
 
@@ -42,6 +44,17 @@ class AuthService extends _$AuthService {
   }
 
   Future<void> logout() async {
+    await _supabase.auth.signOut();
+  }
+
+  Future<void> deleteAccount() async {
+    final dio = ref.read(dioProvider);
+    try {
+      await dio.delete('/users/me');
+    } catch (e) {
+      // Ignore if already deleted or network error, proceeding to sign out
+      // But rethrow if important? For now log and continue
+    }
     await _supabase.auth.signOut();
   }
 

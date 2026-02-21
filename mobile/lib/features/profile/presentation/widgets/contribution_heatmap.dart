@@ -24,18 +24,18 @@ class ContributionHeatmap extends StatelessWidget {
             colorMode: ColorMode.opacity,
             showText: false,
             scrollable: true,
-            colorsets: {
-              1: const Color(0xFF1E1B4B), // Dark Indigo
-              3: const Color(0xFF312E81),
-              5: const Color(0xFF4338CA),
-              7: const Color(0xFF4F46E5),
-              10: const Color(0xFF818CF8), // Light Indigo
+            colorsets: const {
+              1: Color(0xFF1E1B4B), // Dark Indigo
+              3: Color(0xFF312E81),
+              5: Color(0xFF4338CA),
+              7: Color(0xFF4F46E5),
+              10: Color(0xFF818CF8), // Light Indigo
             },
             onClick: (value) {},
             startDate: DateTime.now().subtract(const Duration(days: 60)),
             endDate: DateTime.now(),
             size: 20,
-            textColor: theme.textTheme.bodySmall?.color?.withOpacity(0.3),
+            textColor: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.3),
           )
         ],
       ).animate().fadeIn(delay: 1200.ms),
@@ -52,8 +52,11 @@ class ContributionHeatmap extends StatelessWidget {
           style: GoogleFonts.spaceMono(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color:
-                Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+            color: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.color
+                ?.withValues(alpha: 0.5),
             letterSpacing: 2,
           ),
         ),

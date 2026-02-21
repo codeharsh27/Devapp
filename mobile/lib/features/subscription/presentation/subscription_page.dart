@@ -23,10 +23,10 @@ class SubscriptionPage extends StatelessWidget {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: theme.primaryColor.withOpacity(0.1),
+                color: theme.primaryColor.withValues(alpha: 0.1),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.primaryColor.withOpacity(0.1),
+                    color: theme.primaryColor.withValues(alpha: 0.1),
                     blurRadius: 100,
                   ),
                 ],
@@ -41,10 +41,10 @@ class SubscriptionPage extends StatelessWidget {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.blueAccent.withOpacity(0.1),
+                color: Colors.blueAccent.withValues(alpha: 0.1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blueAccent.withOpacity(0.1),
+                    color: Colors.blueAccent.withValues(alpha: 0.1),
                     blurRadius: 100,
                   ),
                 ],
@@ -73,7 +73,7 @@ class SubscriptionPage extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2,
                           color: theme.textTheme.bodyMedium?.color
-                              ?.withOpacity(0.5),
+                              ?.withValues(alpha: 0.5),
                         ),
                       ),
                       const Spacer(),
@@ -104,13 +104,14 @@ class SubscriptionPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(32),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 blurRadius: 30,
                                 offset: const Offset(0, 15),
                               ),
                             ],
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.1), width: 1),
+                                color: Colors.white.withValues(alpha: 0.1),
+                                width: 1),
                           ),
                           child: Column(
                             children: [
@@ -119,13 +120,14 @@ class SubscriptionPage extends StatelessWidget {
                                     MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.auto_awesome,
-                                      color: const Color(0xFFFFD700), size: 32),
+                                  const Icon(Icons.auto_awesome,
+                                      color: Color(0xFFFFD700), size: 32),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
@@ -153,7 +155,7 @@ class SubscriptionPage extends StatelessWidget {
                                 "EARLY SUPPORTER",
                                 style: GoogleFonts.spaceMono(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: Colors.white.withValues(alpha: 0.6),
                                   letterSpacing: 4,
                                 ),
                               ),
@@ -171,8 +173,8 @@ class SubscriptionPage extends StatelessWidget {
                                               fontSize: 24)),
                                       Text("/ forever",
                                           style: GoogleFonts.outfit(
-                                              color:
-                                                  Colors.white.withOpacity(0.5),
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.5),
                                               fontSize: 12)),
                                     ],
                                   )
@@ -203,7 +205,7 @@ class SubscriptionPage extends StatelessWidget {
                           style: GoogleFonts.outfit(
                             fontSize: 16,
                             color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.7),
+                                ?.withValues(alpha: 0.7),
                             height: 1.6,
                           ),
                         ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
@@ -269,7 +271,7 @@ class SubscriptionPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
       ),
       child: Text(
         text,

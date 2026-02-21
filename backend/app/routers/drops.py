@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from typing import List
 from .. import models, schemas
-from ..dependencies import get_db
+from ..dependencies import get_db, get_current_user
+from ..services.email_service import EmailService
+
+email_service = EmailService()
 
 router = APIRouter(
     prefix="/drops",
@@ -11,12 +15,39 @@ router = APIRouter(
 )
 
 @router.get("", response_model=List[schemas.Drop])
-async def get_drops(db: Session = Depends(get_db)):
+async def get_drops(db: AsyncSession = Depends(get_db)):
     """
     Fetch all available drops.
     """
-    drops = db.query(models.Drop).all()
+    result = await db.execute(select(models.Drop))
+    drops = result.scalars().all()
     return drops
+
+@router.post("/{drop_id}/deploy")
+async def deploy_drop_to_desktop(
+    drop_id: int, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Simulates deploying mission resources to the user's desktop (via email).
+    """
+    result = await db.execute(select(models.Drop).filter(models.Drop.id == drop_id))
+    drop = result.scalars().first()
+    
+    if not drop:
+        raise HTTPException(status_code=404, detail="Drop not found")
+        
+    # Send email in background to avoid blocking response
+    background_tasks.add_task(
+        email_service.send_mission_briefing, 
+        to_email=current_user.email,
+        drop_title=drop.title,
+        drop_domain=drop.domain
+    )
+    
+    return {"message": "Mission Intel deployed to connected terminal"}
 
 @router.post("/sync-github")
 async def sync_github_source(background_tasks: BackgroundTasks):
@@ -28,11 +59,12 @@ async def sync_github_source(background_tasks: BackgroundTasks):
     return {"message": "GitHub sync started in background"}
 
 @router.post("/seed")
-async def seed_database(db: Session = Depends(get_db)):
+async def seed_database(db: AsyncSession = Depends(get_db)):
     """
     Dev utility to seed the database with initial drops.
     """
-    if db.query(models.Drop).first():
+    result = await db.execute(select(models.Drop).limit(1))
+    if result.scalars().first():
         return {"message": "Database already seeded"}
     
     seeds = [
@@ -66,5 +98,5 @@ async def seed_database(db: Session = Depends(get_db)):
     ]
     
     db.add_all(seeds)
-    db.commit()
+    await db.commit()
     return {"message": "Seeded 3 drops"}

@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'auth_controller.dart';
+import 'auth_provider.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
@@ -31,32 +30,23 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authControllerProvider.notifier).register(
+    await ref.read(authProvider.notifier).signup(
           _emailController.text.trim(),
           _passwordController.text,
-          name: _nameController.text.trim(),
+          _nameController.text.trim(),
         );
 
-    if (success && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      final hasSelectedClass = prefs.getBool('has_selected_class') ?? false;
-
-      if (!hasSelectedClass) {
-        context.go('/select-class');
-      } else {
-        context.go('/home');
-      }
-    }
+    // Success navigation handled by Router
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(authControllerProvider);
+    final state = ref.watch(authProvider);
     final isLoading = state is AsyncLoading;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    ref.listen(authControllerProvider, (previous, next) {
+    ref.listen(authProvider, (previous, next) {
       if (next is AsyncError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -94,10 +84,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.purpleAccent.withOpacity(0.1),
+                  color: Colors.purpleAccent.withValues(alpha: 0.1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purpleAccent.withOpacity(0.2),
+                      color: Colors.purpleAccent.withValues(alpha: 0.2),
                       blurRadius: 100,
                       spreadRadius: 20,
                     ),
@@ -113,10 +103,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 height: 250,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.blueAccent.withOpacity(0.05),
+                  color: Colors.blueAccent.withValues(alpha: 0.05),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.15),
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
                       blurRadius: 100,
                       spreadRadius: 20,
                     ),
@@ -127,7 +117,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
             // Light Overlay
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
               ),
             ),
           ],
@@ -181,14 +171,14 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: theme.cardColor.withOpacity(0.5),
+                      color: theme.cardColor.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: theme.dividerColor.withOpacity(0.2),
+                        color: theme.dividerColor.withValues(alpha: 0.1),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -210,7 +200,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                   fontSize: 12, color: theme.disabledColor),
                               filled: true,
                               fillColor: theme.scaffoldBackgroundColor
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -234,7 +224,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                   fontSize: 12, color: theme.disabledColor),
                               filled: true,
                               fillColor: theme.scaffoldBackgroundColor
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -259,7 +249,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                   fontSize: 12, color: theme.disabledColor),
                               filled: true,
                               fillColor: theme.scaffoldBackgroundColor
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,

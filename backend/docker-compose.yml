@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=devapp
+      - POSTGRES_PASSWORD=devapp_password
+      - POSTGRES_DB=devapp
+    networks:
+      - devapp-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U devapp" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://devapp:devapp_password@db:5432/devapp
+      - SECRET_KEY=${SECRET_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - AUTH_MODE=${AUTH_MODE:-supabase}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - devapp-net
+    command: >
+      sh -c "alembic upgrade head && 
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  postgres_data:
+
+
+networks:
+  devapp-net:

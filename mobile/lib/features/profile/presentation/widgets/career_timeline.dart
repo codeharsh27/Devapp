@@ -37,8 +37,11 @@ class CareerTimeline extends StatelessWidget {
           style: GoogleFonts.spaceMono(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color:
-                Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+            color: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.color
+                ?.withValues(alpha: 0.5),
             letterSpacing: 2,
           ),
         ),
@@ -78,7 +81,8 @@ class CareerTimeline extends StatelessWidget {
                   boxShadow: isFirst
                       ? [
                           BoxShadow(
-                              color: const Color(0xFF4F46E5).withOpacity(0.5),
+                              color: const Color(0xFF4F46E5)
+                                  .withValues(alpha: 0.5),
                               blurRadius: 10)
                         ]
                       : null),
@@ -93,7 +97,8 @@ class CareerTimeline extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.dividerColor.withOpacity(0.04)),
+            border:
+                Border.all(color: theme.dividerColor.withValues(alpha: 0.04)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,12 +115,12 @@ class CareerTimeline extends StatelessWidget {
                   Text(company,
                       style: GoogleFonts.outfit(
                           color: theme.textTheme.bodyMedium?.color
-                              ?.withOpacity(0.7),
+                              ?.withValues(alpha: 0.7),
                           fontSize: 14)),
                   Text(date,
                       style: GoogleFonts.spaceMono(
                           color: theme.textTheme.bodySmall?.color
-                              ?.withOpacity(0.3),
+                              ?.withValues(alpha: 0.3),
                           fontSize: 11)),
                 ],
               )

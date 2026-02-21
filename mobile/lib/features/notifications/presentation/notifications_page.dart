@@ -1,49 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../notifications/data/notifications_provider.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
 
+  String _formatTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) return "Just now";
+    if (difference.inMinutes < 60) return "${difference.inMinutes}m ago";
+    if (difference.inHours < 24) return "${difference.inHours}h ago";
+    return "${difference.inDays}d ago";
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    // Mock Data for UI Demonstration
-    final notifications = [
-      _NotificationItem(
-        title: "Mission Completed!",
-        message:
-            "You successfully completed 'Backend API Setup'. Reward: +200 XP",
-        time: "2 mins ago",
-        type: _NotificationType.success,
-        isUnread: true,
-      ),
-      _NotificationItem(
-        title: "New Drop Available",
-        message:
-            "A new standard drop 'Flutter UI Challenge' is now live. Check it out!",
-        time: "1 hour ago",
-        type: _NotificationType.info,
-        isUnread: true,
-      ),
-      _NotificationItem(
-        title: "System Update",
-        message:
-            "We have updated our terms of service regarding professional integrity.",
-        time: "1 day ago",
-        type: _NotificationType.alert,
-        isUnread: false,
-      ),
-      _NotificationItem(
-        title: "Submission Reviewed",
-        message:
-            "Your submission for 'Database Migration' has been reviewed. Grade: 9/10.",
-        time: "2 days ago",
-        type: _NotificationType.success,
-        isUnread: false,
-      ),
-    ];
+    final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -59,12 +37,24 @@ class NotificationsPage extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.done_all_rounded,
-                color: theme.iconTheme.color?.withOpacity(0.5)),
-            tooltip: "Mark all as read",
-          ),
+          if (notifications.isNotEmpty)
+            IconButton(
+              onPressed: () {
+                ref.read(notificationsProvider.notifier).markAllAsRead();
+              },
+              icon: Icon(Icons.done_all_rounded,
+                  color: theme.iconTheme.color?.withValues(alpha: 0.5)),
+              tooltip: "Mark all as read",
+            ),
+          if (notifications.isNotEmpty)
+            IconButton(
+              onPressed: () {
+                ref.read(notificationsProvider.notifier).clearAll();
+              },
+              icon: Icon(Icons.delete_outline_rounded,
+                  color: theme.iconTheme.color?.withValues(alpha: 0.5)),
+              tooltip: "Clear All",
+            ),
           const SizedBox(width: 8),
         ],
       ),
@@ -75,8 +65,16 @@ class NotificationsPage extends StatelessWidget {
               itemCount: notifications.length,
               separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
+                final item = notifications[index];
                 return _NotificationCard(
-                    item: notifications[index], theme: theme, isDark: isDark);
+                  item: item,
+                  theme: theme,
+                  isDark: isDark,
+                  timeLabel: _formatTime(item.timestamp),
+                )
+                    .animate()
+                    .fadeIn(duration: 300.ms, delay: (50 * index).ms)
+                    .slideX(begin: 0.1, end: 0);
               },
             ),
     );
@@ -96,7 +94,7 @@ class NotificationsPage extends StatelessWidget {
             ),
             child: Icon(Icons.notifications_none_rounded,
                 size: 48, color: theme.disabledColor),
-          ),
+          ).animate().scale(),
           const SizedBox(height: 24),
           Text(
             "You're all caught up!",
@@ -105,46 +103,32 @@ class NotificationsPage extends StatelessWidget {
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
-          ),
+          ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 8),
           Text(
             "No new notifications at the moment.",
             style: GoogleFonts.outfit(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               fontSize: 14,
             ),
-          ),
+          ).animate().fadeIn(delay: 400.ms),
         ],
       ),
     );
   }
 }
 
-enum _NotificationType { success, info, alert }
-
-class _NotificationItem {
-  final String title;
-  final String message;
-  final String time;
-  final _NotificationType type;
-  final bool isUnread;
-
-  _NotificationItem({
-    required this.title,
-    required this.message,
-    required this.time,
-    required this.type,
-    required this.isUnread,
-  });
-}
-
 class _NotificationCard extends StatelessWidget {
-  final _NotificationItem item;
+  final AppNotification item;
   final ThemeData theme;
   final bool isDark;
+  final String timeLabel;
 
   const _NotificationCard(
-      {required this.item, required this.theme, required this.isDark});
+      {required this.item,
+      required this.theme,
+      required this.isDark,
+      required this.timeLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -156,12 +140,13 @@ class _NotificationCard extends StatelessWidget {
             : Colors.transparent, // Highlight unread
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: theme.dividerColor.withOpacity(item.isUnread ? 0.3 : 0.1),
+          color:
+              theme.dividerColor.withValues(alpha: item.isUnread ? 0.3 : 0.1),
         ),
         boxShadow: item.isUnread
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -175,7 +160,7 @@ class _NotificationCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _getColor(item.type).withOpacity(0.1),
+              color: _getColor(item.type).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -193,16 +178,21 @@ class _NotificationCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      item.title,
-                      style: GoogleFonts.outfit(
-                        color: theme.textTheme.titleLarge?.color,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          color: theme.textTheme.titleLarge?.color,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
-                      item.time,
+                      timeLabel,
                       style: GoogleFonts.outfit(
                         color: theme.textTheme.bodySmall?.color,
                         fontSize: 10,
@@ -215,7 +205,8 @@ class _NotificationCard extends StatelessWidget {
                 Text(
                   item.message,
                   style: GoogleFonts.outfit(
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                    color: theme.textTheme.bodyMedium?.color
+                        ?.withValues(alpha: 0.8),
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -239,25 +230,29 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  Color _getColor(_NotificationType type) {
+  Color _getColor(NotificationType type) {
     switch (type) {
-      case _NotificationType.success:
+      case NotificationType.success:
         return const Color(0xFF00C853);
-      case _NotificationType.info:
+      case NotificationType.info:
         return Colors.blueAccent;
-      case _NotificationType.alert:
+      case NotificationType.alert:
         return Colors.orangeAccent;
+      case NotificationType.error:
+        return Colors.redAccent;
     }
   }
 
-  IconData _getIcon(_NotificationType type) {
+  IconData _getIcon(NotificationType type) {
     switch (type) {
-      case _NotificationType.success:
+      case NotificationType.success:
         return Icons.check_circle_outline_rounded;
-      case _NotificationType.info:
+      case NotificationType.info:
         return Icons.info_outline_rounded;
-      case _NotificationType.alert:
+      case NotificationType.alert:
         return Icons.notifications_active_outlined;
+      case NotificationType.error:
+        return Icons.error_outline_rounded;
     }
   }
 }

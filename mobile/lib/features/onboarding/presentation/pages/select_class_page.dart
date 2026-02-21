@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui';
+
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_provider.dart';
@@ -22,6 +22,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
   late AnimationController _particleController;
   int _currentPage = 0;
   bool _isSubmitting = false;
+  final List<Particle> _particles = List.generate(60, (index) => Particle());
 
   final List<ClassOption> _classes = [
     ClassOption(
@@ -99,27 +100,48 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
 
     try {
       final selectedClass = _classes[_currentPage];
-
-      // 1. Send update to backend
       final dio = ref.read(dioProvider);
-      await dio.post('/users/me/class', data: {
-        'domain': selectedClass.id,
-      });
 
-      // 2. Local persistence
+      // Guest Logic check (using Supabase directly to be safe, or just check dio header/auth provider)
+      // Since we are inside ConsumerState, we can check auth provider
+      // But simple way:
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('has_selected_class', true);
+
+      // We assume if we are on this page and redirects allow it, we might be guest.
+      // Let's rely on success/fail of API or explicit check.
+      // Actually, router logic now allows guests here.
+
+      // Store locally regardless (as backup or for guest)
+      await prefs.setString('temp_selected_class_id', selectedClass.id);
+      await prefs.setBool('has_selected_class', true); // Optimistic
+
+      bool isLoggedIn = false;
+      try {
+        // Try to send to backend if we have a token
+        // If this fails with 401, we know we are guest
+        await dio.post('/users/me/class', data: {
+          'domain': selectedClass.id,
+        });
+        isLoggedIn = true;
+      } catch (e) {
+        // Likely 401 Unauthorized => Guest
+        isLoggedIn = false;
+      }
 
       if (mounted) {
-        context.go('/home');
+        if (isLoggedIn) {
+          context.go('/home');
+        } else {
+          // Guest -> Go to Signup to create account and claim this class
+          context.go('/signup');
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Initialization Failed: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -147,6 +169,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                   painter: ParticlePainter(
                     color: activeClass.color,
                     animationValue: _particleController.value,
+                    particles: _particles,
                   ),
                 );
               },
@@ -161,8 +184,8 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                 center: Alignment.center,
                 radius: 1.2,
                 colors: [
-                  activeClass.color.withOpacity(0.05),
-                  Colors.black.withOpacity(0.8),
+                  activeClass.color.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.8),
                   Colors.black,
                 ],
                 stops: const [0.0, 0.6, 1.0],
@@ -180,7 +203,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.1),
+                      Colors.black.withValues(alpha: 0.1),
                     ],
                     stops: const [0.5, 0.5],
                     tileMode: TileMode.repeated,
@@ -215,7 +238,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                               duration: 500.ms, curve: Curves.easeOutCubic)
                           : null,
                       icon: Icon(Icons.chevron_left,
-                          color: Colors.white.withOpacity(0.5), size: 32),
+                          color: Colors.white.withValues(alpha: 0.5), size: 32),
                     ),
                   ),
                   // Right Arrow
@@ -228,7 +251,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                               duration: 500.ms, curve: Curves.easeOutCubic)
                           : null,
                       icon: Icon(Icons.chevron_right,
-                          color: Colors.white.withOpacity(0.5), size: 32),
+                          color: Colors.white.withValues(alpha: 0.5), size: 32),
                     ),
                   ),
                 ],
@@ -317,7 +340,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                   ),
                 ),
 
-                // 5. Bottom Controls / Stats
+                // 5. Bottom Controls / Stats (Fixed height to preserve Card aspect ratio)
                 SizedBox(
                   height: 240,
                   child: Padding(
@@ -362,7 +385,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                                             boxShadow: [
                                               BoxShadow(
                                                 color: activeClass.color
-                                                    .withOpacity(0.5),
+                                                    .withValues(alpha: 0.5),
                                                 blurRadius: 6,
                                                 spreadRadius: 1,
                                               )
@@ -408,7 +431,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: activeClass.color.withOpacity(0.3),
+                                color: activeClass.color.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 4),
                               )
@@ -440,7 +463,14 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 1,
                                         ),
-                                      ),
+                                      )
+                                          .animate(
+                                              onPlay: (c) =>
+                                                  c.repeat(period: 5.seconds))
+                                          .shimmer(
+                                              duration: 1200.ms,
+                                              color: Colors.white,
+                                              size: 0.2), // Tech Shimmer
                                       const SizedBox(width: 8),
                                       const Icon(Icons.arrow_forward, size: 20),
                                     ],
@@ -467,18 +497,18 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
         color: const Color(0xFF101010),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isActive ? item.color.withOpacity(0.6) : Colors.white10,
+          color: isActive ? item.color.withValues(alpha: 0.6) : Colors.white10,
           width: isActive ? 1.5 : 1,
         ),
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: item.color.withOpacity(0.15),
+                  color: item.color.withValues(alpha: 0.15),
                   blurRadius: 40,
                   spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   blurRadius: 20,
                   spreadRadius: -5,
                   offset: const Offset(0, 10),
@@ -486,7 +516,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 )
@@ -504,10 +534,10 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      item.color.withOpacity(0.08),
+                      item.color.withValues(alpha: 0.08),
                       Colors.transparent,
                       Colors.transparent,
-                      item.color.withOpacity(0.05),
+                      item.color.withValues(alpha: 0.05),
                     ],
                     stops: const [0.0, 0.4, 0.6, 1.0],
                   ),
@@ -532,14 +562,14 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                     width: 4,
                     height: 4,
                     decoration: BoxDecoration(
-                        color: item.color.withOpacity(0.5),
+                        color: item.color.withValues(alpha: 0.5),
                         shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 4),
                   Container(
                     width: 60,
                     height: 2,
-                    color: item.color.withOpacity(0.3),
+                    color: item.color.withValues(alpha: 0.3),
                   ),
                 ],
               ),
@@ -564,10 +594,11 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                               shape: BoxShape.circle,
                               color: Colors.black,
                               border: Border.all(
-                                  color: item.color.withOpacity(0.3), width: 1),
+                                  color: item.color.withValues(alpha: 0.3),
+                                  width: 1),
                               boxShadow: [
                                 BoxShadow(
-                                  color: item.color.withOpacity(0.1),
+                                  color: item.color.withValues(alpha: 0.1),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 )
@@ -596,7 +627,7 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: item.color.withOpacity(0.1),
+                          color: item.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -638,27 +669,53 @@ class _SelectClassPageState extends ConsumerState<SelectClassPage>
 // Particle System
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Advanced Particle System (Constellation)
+// ---------------------------------------------------------------------------
+
 class ParticlePainter extends CustomPainter {
   final Color color;
   final double animationValue;
-  final List<Particle> _particles = List.generate(50, (index) => Particle());
+  final List<Particle> _particles;
 
-  ParticlePainter({required this.color, required this.animationValue});
+  ParticlePainter({
+    required this.color,
+    required this.animationValue,
+    required List<Particle> particles,
+  }) : _particles = particles;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var particle in _particles) {
-      particle.update(size, animationValue); // Update position based on time
+    final paintNode = Paint()
+      ..color = color.withValues(alpha: 0.4)
+      ..style = PaintingStyle.fill;
 
-      final paint = Paint()
-        ..color = color.withOpacity(particle.opacity * 0.4)
-        ..style = PaintingStyle.fill;
+    final paintLine = Paint()
+      ..color = color.withValues(alpha: 0.15)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
 
-      canvas.drawCircle(
-        Offset(particle.x, particle.y),
-        particle.size,
-        paint,
-      );
+    // Update and Draw Nodes
+    for (var i = 0; i < _particles.length; i++) {
+      var p = _particles[i];
+      p.update(size, animationValue);
+
+      canvas.drawCircle(Offset(p.x, p.y), p.size, paintNode);
+
+      // Draw Connections (Constellation Effect)
+      // Only connect to upcoming particles to avoid double drawing
+      for (var j = i + 1; j < _particles.length; j++) {
+        var p2 = _particles[j];
+        final dx = p.x - p2.x;
+        final dy = p.y - p2.y;
+        final dist = dx * dx + dy * dy;
+
+        // Connection Threshold (squared distance)
+        if (dist < 10000) {
+          // ~100 pixels
+          canvas.drawLine(Offset(p.x, p.y), Offset(p2.x, p2.y), paintLine);
+        }
+      }
     }
   }
 
@@ -673,38 +730,37 @@ class Particle {
   late double x;
   late double y;
   late double size;
-  late double opacity;
   late double speed;
+  double phaseOffset; // For sine wave movement
 
-  // Random shift to ensure they don't all move in unison perfectly
-  final double randomOffset = math.Random().nextDouble() * 1000;
-
-  Particle() {
+  Particle() : phaseOffset = math.Random().nextDouble() * 2 * math.pi {
     _reset();
-    // Randomize initial Y so they cover screen
     y = math.Random().nextDouble() * 1000;
   }
 
   void _reset() {
-    x = math.Random().nextDouble() * 500; // Random X width
-    y = 1000; // Start at bottom
-    size = math.Random().nextDouble() * 3 + 1; // 1-4 size
-    opacity = math.Random().nextDouble();
-    speed = math.Random().nextDouble() * 2 + 0.5;
+    x = math.Random().nextDouble() * 500;
+    y = 1000;
+    size = math.Random().nextDouble() * 2.5 + 1;
+    speed = math.Random().nextDouble() * 1.5 + 0.5;
   }
 
   void update(Size canvasSize, double time) {
-    // Simple upward movement logic simulating loop
-    // We use time + offset to calculate current Y
+    if (x == 0 && y == 1000) {
+      // First run init to canvas size
+      x = math.Random().nextDouble() * canvasSize.width;
+      y = math.Random().nextDouble() * canvasSize.height;
+    }
 
-    double movement =
-        (time * 1000 * speed + randomOffset) % (canvasSize.height + 100);
-    y = canvasSize.height - movement;
+    y -= speed;
+    x += math.sin(y * 0.01 + phaseOffset) * 0.5; // Gentle drift
 
-    // Recalculate X slightly for drift (optional)
-    // x += math.sin(time * 5 + randomOffset) * 0.2;
-
-    if (x > canvasSize.width) x = 0;
+    if (y < -10) {
+      y = canvasSize.height + 10;
+      x = math.Random().nextDouble() * canvasSize.width;
+    }
+    if (x < -10) x = canvasSize.width + 10;
+    if (x > canvasSize.width + 10) x = -10;
   }
 }
 

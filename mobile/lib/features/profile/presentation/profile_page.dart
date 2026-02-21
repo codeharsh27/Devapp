@@ -1,17 +1,16 @@
-import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../drops/data/drops_repository.dart';
 import '../../drops/domain/user_model.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/stats_control_panel.dart';
 import 'widgets/skill_matrix.dart';
-import 'widgets/career_timeline.dart';
+
 import 'widgets/contribution_heatmap.dart';
 import 'widgets/profile_drawer.dart';
+import 'widgets/experience_preview.dart';
+import 'widgets/leaderboard_preview.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -21,31 +20,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  late Map<DateTime, int> _heatMapDatasets;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _heatMapDatasets = _generateMockHeatMap();
-  }
-
-  Map<DateTime, int> _generateMockHeatMap() {
-    final Map<DateTime, int> dataset = {};
-    final now = DateTime.now();
-    final random = Random();
-    final start = now.subtract(const Duration(days: 365));
-    final end = now.add(const Duration(days: 365));
-
-    for (int i = 0; i < end.difference(start).inDays; i++) {
-      final date = start.add(Duration(days: i));
-      if (random.nextDouble() > 0.4) {
-        dataset[DateTime(date.year, date.month, date.day)] =
-            random.nextInt(10) + 1;
-      }
-    }
-    return dataset;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,16 +46,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 gradient: RadialGradient(
                   colors: [
                     const Color(0xFF4F46E5)
-                        .withOpacity(isDark ? 0.2 : 0.05), // Indigo
+                        .withValues(alpha: isDark ? 0.2 : 0.05), // Indigo
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
-          )
-              .animate()
-              .scale(duration: 3.seconds, curve: Curves.easeInOut)
-              .fadeIn(),
+          ),
           Positioned(
             top: 200,
             left: -100,
@@ -92,16 +64,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 gradient: RadialGradient(
                   colors: [
                     const Color(0xFF06B6D4)
-                        .withOpacity(isDark ? 0.15 : 0.05), // Cyan
+                        .withValues(alpha: isDark ? 0.15 : 0.05), // Cyan
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
-          )
-              .animate()
-              .scale(duration: 4.seconds, curve: Curves.easeInOut)
-              .fadeIn(delay: 500.ms),
+          ),
 
           // 2. Main Content
           CustomScrollView(
@@ -126,22 +95,36 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const SliverGap(40),
 
               // Skills "Matrix"
-              const SliverToBoxAdapter(
-                child: SkillMatrix(),
+              SliverToBoxAdapter(
+                child: SkillMatrix(
+                  xpBreakdown: userStatsAsync.valueOrNull?.xpBreakdown ?? {},
+                ),
               ),
 
               const SliverGap(40),
 
-              // Experience Timeline
+              // Leaderboard Preview
               const SliverToBoxAdapter(
-                child: CareerTimeline(),
+                child: LeaderboardPreview(),
               ),
 
               const SliverGap(40),
+
+              // Experience Preview (Top 2-3)
+              const SliverToBoxAdapter(
+                child: ExperiencePreview(),
+              ),
+
+              const SliverGap(16), // Reduced space
 
               // Contribution Graph
               SliverToBoxAdapter(
-                child: ContributionHeatmap(datasets: _heatMapDatasets),
+                child: ref.watch(userActivityProvider).when(
+                      data: (data) => ContributionHeatmap(datasets: data),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, s) => const SizedBox(),
+                    ),
               ),
 
               const SliverGap(80),
@@ -155,6 +138,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
 final userStatsProvider = FutureProvider<UserStats>((ref) async {
   return ref.watch(dropsRepositoryProvider.notifier).getUserStats();
+});
+
+final userActivityProvider = FutureProvider<Map<DateTime, int>>((ref) async {
+  return ref.watch(dropsRepositoryProvider.notifier).getUserActivity();
 });
 
 class SliverGap extends StatelessWidget {

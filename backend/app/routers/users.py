@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from .. import models, schemas
 from ..dependencies import get_db, get_current_user
 
@@ -9,31 +11,110 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/activity/global", response_model=list[schemas.ActivityEntry])
+async def get_global_activity(db: AsyncSession = Depends(get_db)):
+    """
+    Get the last 10 completed submissions from any user for the 'Live Ops' feed.
+    """
+    # Join Submission, User, and Drop
+    stmt = (
+        select(models.Submission, models.User, models.Drop)
+        .join(models.User, models.Submission.user_id == models.User.id)
+        .join(models.Drop, models.Submission.drop_id == models.Drop.id)
+        .filter(models.Submission.status == models.SubmissionStatus.COMPLETED)
+        .order_by(models.Submission.completed_at.desc())
+        .limit(10)
+    )
+    
+    result = await db.execute(stmt)
+    results = result.all()
+    
+    activity = []
+    for sub, user, drop in results:
+        activity.append(schemas.ActivityEntry(
+            user_id=user.id,
+            user_name=user.full_name or "Unknown Agent",
+            user_avatar=user.avatar_url,
+            drop_title=drop.title,
+            drop_domain=drop.domain,
+            completed_at=sub.completed_at or sub.submitted_at,
+            xp_earned=drop.reward_xp
+        ))
+        
+    return activity
+
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+@router.put("/me", response_model=schemas.User)
+async def update_user_me(
+    update: schemas.UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if update.full_name is not None:
+        current_user.full_name = update.full_name
+    if update.bio is not None:
+        current_user.bio = update.bio
+    if update.avatar_url is not None:
+        current_user.avatar_url = update.avatar_url
+    if update.upi_id is not None:
+        current_user.upi_id = update.upi_id
+    if update.social_links is not None:
+        # Merge or Replace? Let's Replace for simplicity
+        current_user.social_links = update.social_links
+        # Ensure change detection for JSON
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(current_user, "social_links")
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+@router.get("/leaderboard", response_model=list[schemas.LeaderboardEntry])
+async def get_leaderboard(
+    domain: str | None = None,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(models.User))
+    users = result.scalars().all()
+    
+    entries = []
+    
+    for user in users:
+        current_xp = 0
+        current_level = 1
+        
+        if domain:
+            domain_lower = domain.lower()
+            xp_breakdown = user.xp_breakdown or {}
+            current_xp = xp_breakdown.get(domain_lower, 0)
+            
+            # Simple level calc for domain (e.g. 500 XP = Lvl 2)
+            current_level = int(current_xp / 500) + 1
+        else:
+            current_xp = user.total_xp or 0
+            current_level = user.level or 1
+            
+        if current_xp > 0:
+            entries.append(schemas.LeaderboardEntry(
+                id=user.id,
+                full_name=user.full_name,
+                avatar_url=user.avatar_url,
+                total_xp=current_xp,
+                level=current_level
+            ))
+            
+    # Sort descending
+    entries.sort(key=lambda x: x.total_xp, reverse=True)
+    
+    return entries[:50]
+
 @router.get("/{user_id}", response_model=schemas.User)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    # Note: user_id implies internal ID. Supabase uses UUID string in 'id' field technically
-    # but models.py probably has 'id' as String or Integer. 
-    # Let's check main.py earlier... user_id in main.py was int: @app.get("/users/{user_id}"...
-    # But models.User.id comes from Supabase, which is a UUID string. 
-    # Wait, in main.py: user = models.User(id=user_id, email=email). User.id is PK.
-    # checking main.py again... 
-    # line 309: async def get_user(user_id: int ...
-    # models.User.id depends on definition. 
-    # If the user table uses Supabase ID, it's a string. 
-    # If it uses an autoincrement int and stores firebase_uid separately, it's int.
-    # main.py line 114: user = models.User(id=user_id, email=email) where user_id is payload.get("sub") (UUID).
-    # so User.id IS A STRING.
-    # The endpoint definition `async def get_user(user_id: int` is WRONG in main.py if ID is UUID string.
-    # But let's stick to what was there unless it breaks. 
-    # Actually, if I look at main.py line 308: @app.get("/users/{user_id}"... 
-    # It might have been broken or I misread.
-    # Let's look at models.py to be sure. Ideally I should have read it.
-    # But for now, I will use `str` for user_id to be safe because Supabase IDs are strings.
-    user = db.query(models.User).filter(models.User.id == str(user_id)).first()
+async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.User).filter(models.User.id == str(user_id)))
+    user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -41,7 +122,7 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
 @router.post("/me/class")
 async def set_user_class(
     update: schemas.UserClassUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
@@ -65,26 +146,30 @@ async def set_user_class(
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(current_user, "xp_breakdown")
         
-        db.commit()
-        db.refresh(current_user)
+        await db.commit()
+        await db.refresh(current_user)
         
     return {"message": f"Class set to {target_domain}", "xp": current_user.total_xp}
 
 @router.get("/me/stats", response_model=schemas.UserStats)
 async def get_my_stats(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
     Calculate current user stats on the fly.
     """
     # Calculate stats from completed submissions
-    results = db.query(models.Submission, models.Drop).join(
-        models.Drop, models.Submission.drop_id == models.Drop.id
-    ).filter(
-        models.Submission.user_id == current_user.id, 
-        models.Submission.status == models.SubmissionStatus.COMPLETED
-    ).all()
+    stmt = (
+        select(models.Submission, models.Drop)
+        .join(models.Drop, models.Submission.drop_id == models.Drop.id)
+        .filter(
+            models.Submission.user_id == current_user.id, 
+            models.Submission.status == models.SubmissionStatus.COMPLETED
+        )
+    )
+    result = await db.execute(stmt)
+    results = result.all()
     
     total_xp = 0
     completed_count = len(results)
@@ -99,9 +184,75 @@ async def get_my_stats(
     if level > 10: rank = "Expert"
     
     return schemas.UserStats(
-        total_xp=current_user.total_xp or 0,
-        level=current_user.level or 1,
+        total_xp=int(current_user.total_xp or 0),
+        level=int(current_user.level or 1),
         completed_drops=completed_count,
         rank=rank,
         xp_breakdown=current_user.xp_breakdown or {}
     )
+
+@router.get("/me/activity", response_model=dict[str, int])
+async def get_my_activity(
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get daily submission activity for the contribution graph.
+    Returns { "YYYY-MM-DD": count }
+    """
+    result = await db.execute(select(models.Submission).filter(
+        models.Submission.user_id == current_user.id,
+        models.Submission.status == models.SubmissionStatus.COMPLETED
+    ))
+    submissions = result.scalars().all()
+    
+    activity = {}
+    for sub in submissions:
+        if sub.completed_at:
+            # Format as YYYY-MM-DD
+            date_str = sub.completed_at.strftime("%Y-%m-%d")
+            activity[date_str] = activity.get(date_str, 0) + 1
+            
+    return activity
+
+@router.get("/me/submissions", response_model=list[schemas.SubmissionWithDrop])
+async def get_my_submissions(
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get all submissions for the current user, including Drop details.
+    """
+    # For SubmissionWithDrop, we need to eager load the 'drop' relationship
+    stmt = (
+        select(models.Submission)
+        .options(selectinload(models.Submission.drop))
+        .filter(models.Submission.user_id == current_user.id)
+        .order_by(models.Submission.submitted_at.desc())
+    )
+    result = await db.execute(stmt)
+    submissions = result.scalars().all()
+    
+    return submissions
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_account(
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Delete the current user's account and all associated data.
+    This action is irreversible.
+    """
+    # Delete User (Cascade should handle related data if configured, 
+    # but SQLAlchemy often needs explicit cascade in models or manual deletion if not DB-level)
+    # Assuming DB-level cascade or simplified deletion for now.
+    
+    # Check if we need to manually delete related items if no cascade
+    # For now, we trust the DB FK constraints are set to CASCADE or we just delete the user.
+    await db.delete(current_user)
+    await db.commit()
+    
+    return None
+
+

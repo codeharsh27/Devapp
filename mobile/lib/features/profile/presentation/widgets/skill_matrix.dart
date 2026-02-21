@@ -3,7 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SkillMatrix extends StatelessWidget {
-  const SkillMatrix({super.key});
+  final Map<String, dynamic> xpBreakdown;
+
+  const SkillMatrix({super.key, required this.xpBreakdown});
 
   @override
   Widget build(BuildContext context) {
@@ -14,20 +16,62 @@ class SkillMatrix extends StatelessWidget {
         children: [
           _buildSectionHeader(context, "SKILL MATRIX"),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _buildSkillBadge(context, "Flutter", 0.9),
-              _buildSkillBadge(context, "Dart", 0.85),
-              _buildSkillBadge(context, "Python", 0.7),
-              _buildSkillBadge(context, "System Design", 0.6),
-              _buildSkillBadge(context, "UI/UX", 0.8),
-            ],
-          )
+          if (xpBreakdown.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color:
+                        Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.lock_person_rounded,
+                      color: Theme.of(context)
+                          .disabledColor
+                          .withValues(alpha: 0.5),
+                      size: 32),
+                  const SizedBox(height: 12),
+                  Text("SKILL MATRIX LOCKED",
+                      style: GoogleFonts.spaceMono(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).disabledColor)),
+                  const SizedBox(height: 4),
+                  Text("Complete missions to analyze your skillset.",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withValues(alpha: 0.6))),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: xpBreakdown.entries.map((entry) {
+                final domain = entry.key;
+                final xp = (entry.value as num).toInt();
+                // Mastery logic: 2000 XP = Full Bar (Level 2)
+                final mastery = (xp / 2000.0).clamp(0.1, 1.0);
+
+                return _buildSkillBadge(context, _capitalize(domain), mastery);
+              }).toList(),
+            )
         ],
       ).animate().fadeIn(delay: 800.ms),
     );
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
@@ -40,8 +84,11 @@ class SkillMatrix extends StatelessWidget {
           style: GoogleFonts.spaceMono(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color:
-                Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+            color: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.color
+                ?.withValues(alpha: 0.5),
             letterSpacing: 2,
           ),
         ),

@@ -12,10 +12,14 @@ _$SubmissionImpl _$$SubmissionImplFromJson(Map<String, dynamic> json) =>
       dropId: (json['drop_id'] as num).toInt(),
       userId: json['user_id'] as String,
       submissionUrl: json['submission_url'] as String,
+      imageUrl: json['image_url'] as String?,
       status: json['status'] as String,
       score: (json['score'] as num?)?.toInt(),
       feedback: json['feedback'] as String?,
       submittedAt: DateTime.parse(json['submitted_at'] as String),
+      drop: json['drop'] == null
+          ? null
+          : Drop.fromJson(json['drop'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$SubmissionImplToJson(_$SubmissionImpl instance) =>
@@ -24,8 +28,10 @@ Map<String, dynamic> _$$SubmissionImplToJson(_$SubmissionImpl instance) =>
       'drop_id': instance.dropId,
       'user_id': instance.userId,
       'submission_url': instance.submissionUrl,
+      'image_url': instance.imageUrl,
       'status': instance.status,
       'score': instance.score,
       'feedback': instance.feedback,
       'submitted_at': instance.submittedAt.toIso8601String(),
+      'drop': instance.drop,
     };

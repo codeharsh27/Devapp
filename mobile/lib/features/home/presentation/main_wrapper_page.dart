@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui'; // For ImageFilter
+import '../../../core/network/websocket_service.dart';
+import '../../../core/widgets/connectivity_status_widget.dart';
 
-class MainWrapperPage extends StatefulWidget {
+class MainWrapperPage extends ConsumerStatefulWidget {
   final Widget child;
   const MainWrapperPage({super.key, required this.child});
 
   @override
-  State<MainWrapperPage> createState() => _MainWrapperPageState();
+  ConsumerState<MainWrapperPage> createState() => _MainWrapperPageState();
 }
 
-class _MainWrapperPageState extends State<MainWrapperPage> {
+class _MainWrapperPageState extends ConsumerState<MainWrapperPage> {
   void _onTap(int index) {
     switch (index) {
       case 0:
         context.go('/home');
         break;
       case 1:
-        context.go('/submissions'); // Applications
+        context.go('/submissions'); // My Drops
         break;
       case 2:
         context.go('/inbox'); // Inbox
@@ -40,6 +43,26 @@ class _MainWrapperPageState extends State<MainWrapperPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(webSocketEventsProvider, (previous, next) {
+      next.whenData((message) {
+        if (message['type'] == 'submission_update') {
+          final data = message['data'] ?? {};
+          final status = data['status'];
+          final score = data['score'];
+          final title = data['drop_title'] ?? "Drop";
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$title evaluated: $status (Score: $score)'),
+              backgroundColor:
+                  status == 'COMPLETED' ? Colors.green : Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      });
+    });
+
     final selectedIndex = _calculateSelectedIndex(context);
     final theme = Theme.of(context);
 
@@ -47,86 +70,89 @@ class _MainWrapperPageState extends State<MainWrapperPage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            child: Container(
-              color: theme.scaffoldBackgroundColor, // Ensure background matches
-              child: widget.child,
+      body: ConnectivityStatusWidget(
+        child: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: Container(
+                color:
+                    theme.scaffoldBackgroundColor, // Ensure background matches
+                child: widget.child,
+              ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                      color: theme.scaffoldBackgroundColor
-                          .withOpacity(0.8), // Glassy background
-                      border: Border(
-                          top: BorderSide(
-                              color: theme.dividerColor.withOpacity(0.1),
-                              width: 0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, -5))
-                      ]),
-                  child: SafeArea(
-                    top: false,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _NavBarItem(
-                          icon: Icons.home_rounded,
-                          label: "Home",
-                          index: 0,
-                          isSelected: selectedIndex == 0,
-                          onTap: () => _onTap(0),
-                        ),
-                        _NavBarItem(
-                          icon: Icons.grid_view_rounded,
-                          label: "Drops",
-                          index: 1,
-                          isSelected: selectedIndex == 1,
-                          onTap: () => _onTap(1),
-                        ),
-                        _NavBarItem(
-                          icon: Icons.chat_bubble_outline_rounded,
-                          label: "Inbox",
-                          index: 2,
-                          isSelected: selectedIndex == 2,
-                          onTap: () => _onTap(2),
-                        ),
-                        _NavBarItem(
-                          icon: Icons.person_outline_rounded,
-                          label: "Profile",
-                          index: 3,
-                          isSelected: selectedIndex == 3,
-                          onTap: () => _onTap(3),
-                        ),
-                      ],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                        color: theme.scaffoldBackgroundColor
+                            .withOpacity(0.8), // Glassy background
+                        border: Border(
+                            top: BorderSide(
+                                color: theme.dividerColor.withOpacity(0.1),
+                                width: 0.5)),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, -5))
+                        ]),
+                    child: SafeArea(
+                      top: false,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _NavBarItem(
+                            icon: Icons.home_rounded,
+                            label: "Home",
+                            index: 0,
+                            isSelected: selectedIndex == 0,
+                            onTap: () => _onTap(0),
+                          ),
+                          _NavBarItem(
+                            icon: Icons.grid_view_rounded,
+                            label: "My Drops",
+                            index: 1,
+                            isSelected: selectedIndex == 1,
+                            onTap: () => _onTap(1),
+                          ),
+                          _NavBarItem(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            label: "Inbox",
+                            index: 2,
+                            isSelected: selectedIndex == 2,
+                            onTap: () => _onTap(2),
+                          ),
+                          _NavBarItem(
+                            icon: Icons.person_outline_rounded,
+                            label: "Profile",
+                            index: 3,
+                            isSelected: selectedIndex == 3,
+                            onTap: () => _onTap(3),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -153,7 +179,7 @@ class _NavBarItem extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final activeColor = theme.primaryColor;
     final inactiveColor =
-        theme.iconTheme.color?.withOpacity(0.5) ?? Colors.grey;
+        theme.iconTheme.color?.withValues(alpha: 0.5) ?? Colors.grey;
 
     return GestureDetector(
       onTap: onTap,
@@ -167,7 +193,7 @@ class _NavBarItem extends StatelessWidget {
           color: isSelected
               ? (isDark
                   ? const Color(0xFF2C2C2C)
-                  : theme.primaryColor.withOpacity(0.1))
+                  : theme.primaryColor.withValues(alpha: 0.1))
               : Colors.transparent, // Pill Decoration
           borderRadius: BorderRadius.circular(30),
         ),

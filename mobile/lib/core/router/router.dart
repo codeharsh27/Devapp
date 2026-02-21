@@ -1,9 +1,13 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'dart:async'; // For StreamSubscription
+import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/home/presentation/main_wrapper_page.dart';
 import '../../features/drops/presentation/home_page.dart';
+import '../../features/drops/presentation/explore_page.dart';
 import '../../features/drops/presentation/drop_detail_page.dart';
+import '../../features/drops/presentation/domain_drops_page.dart';
 import '../../features/drops/presentation/active_execution_page.dart';
 import '../../features/drops/domain/drop.dart';
 import '../../features/auth/presentation/login_page.dart';
@@ -22,10 +26,55 @@ import '../../features/profile/presentation/settings_page.dart';
 import '../../features/subscription/presentation/subscription_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/onboarding/presentation/pages/select_class_page.dart';
+import '../../features/leaderboard/presentation/leaderboard_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  // Use a ValueNotifier to trigger refreshes
+  final refreshNotifier = ValueNotifier<bool>(false);
+
+  ref.listen(authProvider, (_, __) {
+    refreshNotifier.value = !refreshNotifier.value;
+  });
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: refreshNotifier,
+    redirect: (context, state) async {
+      final authState = ref.read(authProvider);
+      final isLoggedIn = authState.value != null;
+      final path = state.uri.toString();
+
+      final isPublicRoute =
+          path == '/login' || path == '/signup' || path == '/onboarding';
+      // path == '/select-class' is effectively protected as it needs auth to save
+
+      if (authState.isLoading) return null;
+
+      // 1. Logged In User
+      if (isLoggedIn) {
+        // If user is on a public page (Login/Signup), send to Splash ('/')
+        // Splash will check profile & class selection, then route to Home or Select-Class
+        if (isPublicRoute) return '/';
+
+        // If user is on Splash ('/'), allow it to run logic
+        if (path == '/') return null;
+
+        return null;
+      }
+
+      // 2. Guest User
+      if (!isLoggedIn) {
+        if (isPublicRoute) return null;
+
+        if (path == '/') {
+          return '/onboarding';
+        }
+
+        return '/login';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',
@@ -48,13 +97,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
-        path: '/chat',
+        path: '/chat/:conversationId',
         builder: (context, state) {
-          final extras = state.extra as Map<String, dynamic>;
-          return ChatPage(
-              senderName: extras['senderName'],
-              senderRole: extras['senderRole'],
-              avatarColor: extras['avatarColor']);
+          final conversationId =
+              int.parse(state.pathParameters['conversationId']!);
+          return ChatPage(conversationId: conversationId);
         },
       ),
       // ShellRoute for Bottom Navigation
@@ -76,6 +123,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfilePage(),
+          ),
+          GoRoute(
+            path: '/explore',
+            builder: (context, state) => const ExplorePage(),
           ),
         ],
       ),
@@ -151,6 +202,36 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/select-class',
         builder: (context, state) => const SelectClassPage(),
       ),
+
+      GoRoute(
+        path: '/domain-feed',
+        builder: (context, state) {
+          final domain = state.extra as String? ?? 'backend';
+          return DomainDropsPage(domainId: domain);
+        },
+      ),
+      GoRoute(
+        path: '/leaderboard',
+        builder: (context, state) => const LeaderboardPage(),
+      ),
     ],
   );
 });
+
+// Helper for GoRouter Refresh Listenable
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen(
+          (dynamic _) => notifyListeners(),
+        );
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}

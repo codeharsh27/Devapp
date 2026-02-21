@@ -40,7 +40,7 @@ class TermsPage extends StatelessWidget {
                 child: Text("Last updated: Jan 2026",
                     style: GoogleFonts.spaceMono(
                         color: theme.textTheme.bodyMedium?.color
-                            ?.withOpacity(0.5)))),
+                            ?.withValues(alpha: 0.5)))),
           ],
         ),
       ),
@@ -62,7 +62,8 @@ class TermsPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(content,
               style: GoogleFonts.outfit(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color:
+                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   fontSize: 16,
                   height: 1.6)),
         ],

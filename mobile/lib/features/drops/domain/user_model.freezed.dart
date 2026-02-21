@@ -20,10 +20,17 @@ User _$UserFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$User {
-  int get id => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   @JsonKey(name: 'full_name')
   String? get fullName => throw _privateConstructorUsedError;
+  String? get bio => throw _privateConstructorUsedError;
+  @JsonKey(name: 'avatar_url')
+  String? get avatarUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'upi_id')
+  String? get upiId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'social_links')
+  Map<String, dynamic>? get socialLinks => throw _privateConstructorUsedError;
 
   /// Serializes this User to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -40,7 +47,13 @@ abstract class $UserCopyWith<$Res> {
       _$UserCopyWithImpl<$Res, User>;
   @useResult
   $Res call(
-      {int id, String email, @JsonKey(name: 'full_name') String? fullName});
+      {String id,
+      String email,
+      @JsonKey(name: 'full_name') String? fullName,
+      String? bio,
+      @JsonKey(name: 'avatar_url') String? avatarUrl,
+      @JsonKey(name: 'upi_id') String? upiId,
+      @JsonKey(name: 'social_links') Map<String, dynamic>? socialLinks});
 }
 
 /// @nodoc
@@ -61,12 +74,16 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? id = null,
     Object? email = null,
     Object? fullName = freezed,
+    Object? bio = freezed,
+    Object? avatarUrl = freezed,
+    Object? upiId = freezed,
+    Object? socialLinks = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       email: null == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
@@ -75,6 +92,22 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.fullName
           : fullName // ignore: cast_nullable_to_non_nullable
               as String?,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      avatarUrl: freezed == avatarUrl
+          ? _value.avatarUrl
+          : avatarUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      upiId: freezed == upiId
+          ? _value.upiId
+          : upiId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      socialLinks: freezed == socialLinks
+          ? _value.socialLinks
+          : socialLinks // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ) as $Val);
   }
 }
@@ -87,7 +120,13 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id, String email, @JsonKey(name: 'full_name') String? fullName});
+      {String id,
+      String email,
+      @JsonKey(name: 'full_name') String? fullName,
+      String? bio,
+      @JsonKey(name: 'avatar_url') String? avatarUrl,
+      @JsonKey(name: 'upi_id') String? upiId,
+      @JsonKey(name: 'social_links') Map<String, dynamic>? socialLinks});
 }
 
 /// @nodoc
@@ -105,12 +144,16 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? id = null,
     Object? email = null,
     Object? fullName = freezed,
+    Object? bio = freezed,
+    Object? avatarUrl = freezed,
+    Object? upiId = freezed,
+    Object? socialLinks = freezed,
   }) {
     return _then(_$UserImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       email: null == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
@@ -119,6 +162,22 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.fullName
           : fullName // ignore: cast_nullable_to_non_nullable
               as String?,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      avatarUrl: freezed == avatarUrl
+          ? _value.avatarUrl
+          : avatarUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      upiId: freezed == upiId
+          ? _value.upiId
+          : upiId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      socialLinks: freezed == socialLinks
+          ? _value._socialLinks
+          : socialLinks // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ));
   }
 }
@@ -129,22 +188,45 @@ class _$UserImpl implements _User {
   const _$UserImpl(
       {required this.id,
       required this.email,
-      @JsonKey(name: 'full_name') this.fullName});
+      @JsonKey(name: 'full_name') this.fullName,
+      this.bio,
+      @JsonKey(name: 'avatar_url') this.avatarUrl,
+      @JsonKey(name: 'upi_id') this.upiId,
+      @JsonKey(name: 'social_links') final Map<String, dynamic>? socialLinks})
+      : _socialLinks = socialLinks;
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
   final String email;
   @override
   @JsonKey(name: 'full_name')
   final String? fullName;
+  @override
+  final String? bio;
+  @override
+  @JsonKey(name: 'avatar_url')
+  final String? avatarUrl;
+  @override
+  @JsonKey(name: 'upi_id')
+  final String? upiId;
+  final Map<String, dynamic>? _socialLinks;
+  @override
+  @JsonKey(name: 'social_links')
+  Map<String, dynamic>? get socialLinks {
+    final value = _socialLinks;
+    if (value == null) return null;
+    if (_socialLinks is EqualUnmodifiableMapView) return _socialLinks;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, fullName: $fullName)';
+    return 'User(id: $id, email: $email, fullName: $fullName, bio: $bio, avatarUrl: $avatarUrl, upiId: $upiId, socialLinks: $socialLinks)';
   }
 
   @override
@@ -155,12 +237,19 @@ class _$UserImpl implements _User {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.email, email) || other.email == email) &&
             (identical(other.fullName, fullName) ||
-                other.fullName == fullName));
+                other.fullName == fullName) &&
+            (identical(other.bio, bio) || other.bio == bio) &&
+            (identical(other.avatarUrl, avatarUrl) ||
+                other.avatarUrl == avatarUrl) &&
+            (identical(other.upiId, upiId) || other.upiId == upiId) &&
+            const DeepCollectionEquality()
+                .equals(other._socialLinks, _socialLinks));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, email, fullName);
+  int get hashCode => Object.hash(runtimeType, id, email, fullName, bio,
+      avatarUrl, upiId, const DeepCollectionEquality().hash(_socialLinks));
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -180,19 +269,35 @@ class _$UserImpl implements _User {
 
 abstract class _User implements User {
   const factory _User(
-      {required final int id,
+      {required final String id,
       required final String email,
-      @JsonKey(name: 'full_name') final String? fullName}) = _$UserImpl;
+      @JsonKey(name: 'full_name') final String? fullName,
+      final String? bio,
+      @JsonKey(name: 'avatar_url') final String? avatarUrl,
+      @JsonKey(name: 'upi_id') final String? upiId,
+      @JsonKey(name: 'social_links')
+      final Map<String, dynamic>? socialLinks}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
   String get email;
   @override
   @JsonKey(name: 'full_name')
   String? get fullName;
+  @override
+  String? get bio;
+  @override
+  @JsonKey(name: 'avatar_url')
+  String? get avatarUrl;
+  @override
+  @JsonKey(name: 'upi_id')
+  String? get upiId;
+  @override
+  @JsonKey(name: 'social_links')
+  Map<String, dynamic>? get socialLinks;
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.

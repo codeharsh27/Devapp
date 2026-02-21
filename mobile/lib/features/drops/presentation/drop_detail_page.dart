@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/drop.dart';
 import 'dart:math' as math;
 import 'current_drop_provider.dart';
-
+import '../data/drops_repository.dart';
 import 'saved_drops_provider.dart';
 
 import 'package:flutter/services.dart';
@@ -130,118 +130,11 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
                     const SizedBox(height: 16),
 
-                    // Contributors
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          height: 30,
-                          child: Stack(
-                            children: [
-                              // Mock Contributors
-                              for (int i = 0; i < 3; i++)
-                                Positioned(
-                                  left: i * 20.0,
-                                  child: Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: theme.cardColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color: theme.cardColor, width: 2),
-                                      image: DecorationImage(
-                                        image: NetworkImage(
-                                            'https://i.pravatar.cc/150?u=${widget.drop.id * 10 + i}'),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          "+${(widget.drop.id % 3) + 2} Contributors are working on this",
-                          style: GoogleFonts.outfit(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.6),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 250.ms),
-                    const SizedBox(height: 32),
-
-                    // Reward Card
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                            color: theme.dividerColor.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("TOTAL REWARD",
-                                  style: GoogleFonts.outfit(
-                                      color: theme.textTheme.bodySmall?.color
-                                          ?.withOpacity(0.7),
-                                      fontSize: 10,
-                                      letterSpacing: 1.5,
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.bolt_rounded,
-                                      color: Color(0xFFD4E157), size: 28),
-                                  const SizedBox(width: 8),
-                                  Text("${widget.drop.rewardXp} XP",
-                                      style: GoogleFonts.outfit(
-                                          color:
-                                              theme.textTheme.bodyLarge?.color,
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Container(
-                              width: 1, height: 40, color: theme.dividerColor),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text("EST. TIME",
-                                  style: GoogleFonts.outfit(
-                                      color: theme.textTheme.bodySmall?.color
-                                          ?.withOpacity(0.7),
-                                      fontSize: 10,
-                                      letterSpacing: 1.5,
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              Text("${widget.drop.timeLimitMinutes} min",
-                                  style: GoogleFonts.outfit(
-                                      color: theme.textTheme.bodyLarge?.color,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 300.ms).scale(),
-                    const SizedBox(height: 40),
-
                     // Description
                     Text("MISSION BRIEF",
                         style: GoogleFonts.outfit(
                             color: theme.textTheme.bodySmall?.color
-                                ?.withOpacity(0.8),
+                                ?.withValues(alpha: 0.8),
                             fontSize: 12,
                             letterSpacing: 2,
                             fontWeight: FontWeight.bold)),
@@ -267,7 +160,7 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                           color:
                               isDark ? Colors.amberAccent : Colors.deepPurple,
                           backgroundColor: theme.cardColor
-                              .withOpacity(0.5), // Subtle code bg
+                              .withValues(alpha: 0.5), // Subtle code bg
                           fontSize: 14,
                         ),
                         codeblockDecoration: BoxDecoration(
@@ -278,18 +171,21 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                     ),
                     const SizedBox(height: 40),
 
+                    // --- NEW INTEL ASSETS SECTION ---
+                    _buildIntelAssets(context, isDark),
+                    const SizedBox(height: 32),
+
                     // Serious Warning Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2B0E0E)
-                            : Colors.red[50], // Light Red bg in Light Mode
+                        color:
+                            isDark ? const Color(0xFF2B0E0E) : Colors.red[50],
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                             color: isDark
-                                ? Colors.redAccent.withOpacity(0.3)
-                                : Colors.redAccent.withOpacity(0.2)),
+                                ? Colors.redAccent.withValues(alpha: 0.3)
+                                : Colors.redAccent.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         children: [
@@ -313,10 +209,7 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                           Text(
                             "All code link, docs, and screenshots are manually analyzed by Hiring Managers and Founders. Fake or invalid submissions will result in immediate penalty and account blacklisting.",
                             style: GoogleFonts.outfit(
-                              color: isDark
-                                  ? Colors.white70
-                                  : Colors
-                                      .red[900], // Dark Red text in Light Mode
+                              color: isDark ? Colors.white70 : Colors.red[900],
                               fontSize: 13,
                               height: 1.5,
                             ),
@@ -333,68 +226,217 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
             // Bottom Action Area
             Padding(
               padding: const EdgeInsets.all(24),
-              child: GestureDetector(
-                onTap: isEnrolled
-                    ? () => context.push('/execution', extra: widget.drop)
-                    : () => _showStartDialog(context),
-                child: Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: isEnrolled
-                        ? Colors.blueAccent
-                        : (isDark ? Colors.white : Colors.black),
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                          color: (isEnrolled ? Colors.blueAccent : Colors.black)
-                              .withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 5))
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        isEnrolled ? "Continue Mission" : "Start Executing",
-                        style: GoogleFonts.outfit(
-                          color: isEnrolled
-                              ? Colors.white
-                              : (isDark ? Colors.black : Colors.white),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+              child: Column(
+                children: [
+                  // Secondary Action: Deploy to HQ
+                  if (!isEnrolled) ...[
+                    GestureDetector(
+                      onTap: () async {
+                        try {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text("Connecting to secure terminal...",
+                                style: GoogleFonts.outfit()),
+                            backgroundColor: Colors.black54,
+                            duration: const Duration(seconds: 1),
+                          ));
+
+                          await ref
+                              .read(dropsRepositoryProvider.notifier)
+                              .deployDrop(widget.drop.id);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Row(children: [
+                                const Icon(Icons.send_rounded,
+                                    color: Colors.white, size: 16),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                      "Mission Briefing sent to your email terminal.",
+                                      style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                              ]),
+                              backgroundColor: const Color(0xFF2962FF),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ));
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text("Deployment Failed: $e"),
+                              backgroundColor: Colors.redAccent,
+                            ));
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                            border: Border.all(
+                                color:
+                                    theme.dividerColor.withValues(alpha: 0.1)),
+                            borderRadius: BorderRadius.circular(16),
+                            color: theme.cardColor.withValues(alpha: 0.3)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.desktop_mac_rounded,
+                                size: 18, color: theme.primaryColor),
+                            const SizedBox(width: 8),
+                            Text("DEPLOY INTEL TO DESKTOP",
+                                style: GoogleFonts.spaceMono(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.primaryColor,
+                                    letterSpacing: 1))
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // Animated Arrows
-                      if (!isEnrolled)
-                        AnimatedBuilder(
-                          animation: _controller,
-                          builder: (context, child) {
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _buildArrow(0),
-                                Transform.translate(
-                                    offset: const Offset(-8, 0),
-                                    child: _buildArrow(0.2)),
-                                Transform.translate(
-                                    offset: const Offset(-16, 0),
-                                    child: _buildArrow(0.4)),
-                              ],
-                            );
-                          },
-                        )
-                      else
-                        const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white),
-                    ],
-                  ),
-                ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Primary Action
+                  GestureDetector(
+                    onTap: isEnrolled
+                        ? () => context.push('/execution', extra: widget.drop)
+                        : () => _showStartDialog(context),
+                    child: Container(
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: isEnrolled
+                            ? const Color(0xFF00C853)
+                            : (isDark ? Colors.white : Colors.black),
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                              color: (isEnrolled
+                                      ? const Color(0xFF00C853)
+                                      : Colors.black)
+                                  .withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 5))
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isEnrolled ? "CONTINUE MISSION" : "START EXECUTING",
+                            style: GoogleFonts.outfit(
+                                color: isEnrolled
+                                    ? Colors.black
+                                    : (isDark ? Colors.black : Colors.white),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1),
+                          ),
+                          const SizedBox(width: 12),
+                          // Animated Arrows
+                          if (!isEnrolled)
+                            AnimatedBuilder(
+                              animation: _controller,
+                              builder: (context, child) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildArrow(0),
+                                    Transform.translate(
+                                        offset: const Offset(-8, 0),
+                                        child: _buildArrow(0.2)),
+                                    Transform.translate(
+                                        offset: const Offset(-16, 0),
+                                        child: _buildArrow(0.4)),
+                                  ],
+                                );
+                              },
+                            )
+                          else
+                            const Icon(Icons.play_arrow_rounded,
+                                color: Colors.black),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
+                ],
               ),
-            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIntelAssets(BuildContext context, bool isDark) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("INTEL ASSETS",
+            style: GoogleFonts.outfit(
+                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+                fontSize: 12,
+                letterSpacing: 2,
+                fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 100, // Fixed height for asset cards
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildAssetCard(context, Icons.insert_drive_file_outlined,
+                  "Briefing\nDoc", "PDF • 2.4MB"),
+              const SizedBox(width: 12),
+              _buildAssetCard(context, Icons.image_outlined, "Design\nSystem",
+                  "FIGMA • LINK"),
+              const SizedBox(width: 12),
+              _buildAssetCard(
+                  context, Icons.api_rounded, "API\nAccess", "JSON • V2"),
+              const SizedBox(width: 12),
+              _buildAssetCard(
+                  context, Icons.code_rounded, "Starter\nRepo", "GITHUB • TPL"),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildAssetCard(
+      BuildContext context, IconData icon, String title, String subtitle) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 130,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon,
+              color: theme.iconTheme.color?.withValues(alpha: 0.7), size: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold, fontSize: 13, height: 1.1)),
+              const SizedBox(height: 4),
+              Text(subtitle,
+                  style: GoogleFonts.spaceMono(
+                      fontSize: 9,
+                      color: theme.textTheme.bodySmall?.color
+                          ?.withValues(alpha: 0.5))),
+            ],
+          )
+        ],
       ),
     );
   }
@@ -415,10 +457,10 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 40,
                 offset: const Offset(0, 20),
               ),
@@ -432,10 +474,10 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF00C853).withOpacity(0.1),
+                  color: const Color(0xFF00C853).withValues(alpha: 0.1),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00C853).withOpacity(0.2),
+                      color: const Color(0xFF00C853).withValues(alpha: 0.2),
                       blurRadius: 20,
                       spreadRadius: 5,
                     )
@@ -453,7 +495,7 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
               Text(
                 "MISSION ACCEPTANCE",
                 style: GoogleFonts.spaceMono(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                   letterSpacing: 4,
                   fontWeight: FontWeight.bold,
@@ -475,9 +517,10 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -503,7 +546,7 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                 "Once initialized, this mission session cannot be paused. Ensure your environment is ready for execution.",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
                   height: 1.6,
                 ),
@@ -521,7 +564,7 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                       ),
                       child: Text("ABORT",
                           style: GoogleFonts.outfit(
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                             fontWeight: FontWeight.bold,
                             letterSpacing: 2,
                           )),
@@ -546,7 +589,8 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
-                        shadowColor: const Color(0xFF00C853).withOpacity(0.5),
+                        shadowColor:
+                            const Color(0xFF00C853).withValues(alpha: 0.5),
                       ),
                       child: Text(
                         "EXECUTE",
@@ -583,9 +627,10 @@ class _DropDetailPageState extends ConsumerState<DropDetailPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: _getDomainColor(domain).withOpacity(0.15),
+        color: _getDomainColor(domain).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: _getDomainColor(domain).withOpacity(0.3)),
+        border:
+            Border.all(color: _getDomainColor(domain).withValues(alpha: 0.3)),
       ),
       child: Text(
         domain.toUpperCase(),

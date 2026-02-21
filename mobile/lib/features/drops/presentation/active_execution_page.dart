@@ -14,6 +14,7 @@ import 'current_drop_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../notifications/data/notifications_provider.dart';
 
 class ActiveExecutionPage extends ConsumerStatefulWidget {
   final Drop drop;
@@ -93,10 +94,10 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               )
@@ -253,11 +254,32 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
         _isUploadingImage = false;
       });
     } catch (e) {
-      debugPrint("Upload Error: $e");
+      debugPrint(
+          "Upload Error: $e. ACTION REQUIRED: Create 'submissions' bucket in Supabase Dashboard.");
       if (mounted) {
         setState(() => _isUploadingImage = false);
+
+        String errorMessage = "Image Upload Failed";
+        if (e.toString().contains("Bucket not found")) {
+          errorMessage =
+              "SETUP REQUIRED: Create 'submissions' bucket in Supabase Dashboard (Public).";
+        } else if (e.toString().contains("statusCode: 403")) {
+          errorMessage =
+              "PERMISSION DENIED: Check RLS policies for 'submissions' bucket.";
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Image Upload Failed: $e")),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: "Copy",
+              textColor: Colors.white,
+              onPressed: () =>
+                  Clipboard.setData(ClipboardData(text: errorMessage)),
+            ),
+          ),
         );
       }
     }
@@ -291,6 +313,21 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
           } catch (e) {
             debugPrint("Cleanup error: $e");
           }
+
+          final isSuccess = submission.status.toLowerCase() == 'completed';
+          final notificationTitle =
+              isSuccess ? "Mission Accomplished!" : "Mission Failed";
+          final notificationMessage = isSuccess
+              ? "You successfully completed '${widget.drop.title}'. Reward: +${widget.drop.rewardXp} XP"
+              : "Submission for '${widget.drop.title}' failed. Feedback: ${submission.feedback ?? 'Check requirements.'}";
+
+          ref.read(notificationsProvider.notifier).addNotification(
+                title: notificationTitle,
+                message: notificationMessage,
+                type: isSuccess
+                    ? NotificationType.success
+                    : NotificationType.error,
+              );
 
           if (mounted) {
             setState(() {
@@ -329,7 +366,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                 ),
                 child: Icon(
                   isSuccess ? Icons.check_circle_outline : Icons.error_outline,
@@ -350,7 +387,8 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
               Text(
                 "Score: $_score/100",
                 style: GoogleFonts.outfit(
-                  color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7),
+                  color:
+                      theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -569,7 +607,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.1),
+                        color: Colors.redAccent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -591,7 +629,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                         child: ElevatedButton(
                           onPressed: () async {
                             await _clearMissionState();
-                            if (mounted) context.pop();
+                            if (context.mounted) context.pop();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -625,14 +663,14 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                         color: theme.cardColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: theme.dividerColor.withOpacity(0.5)),
+                            color: theme.dividerColor.withValues(alpha: 0.5)),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blueAccent.withOpacity(0.1),
+                              color: Colors.blueAccent.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.code,
@@ -695,8 +733,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                       ),
 
                     // 1. Submission Input Fields (Dynamic based on Type)
-                    if (widget.drop.submissionType == 'code' ||
-                        widget.drop.submissionType == null)
+                    if (widget.drop.submissionType == 'code')
                       _buildInputField(
                               label: "GitHub / Project URL",
                               hint: "Has to be public repo link",
@@ -769,7 +806,8 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                               color: theme.textTheme.bodyLarge?.color),
                           decoration: InputDecoration(
                             prefixIcon: Icon(Icons.description_outlined,
-                                color: theme.iconTheme.color?.withOpacity(0.5),
+                                color: theme.iconTheme.color
+                                    ?.withValues(alpha: 0.5),
                                 size: 20),
                             hintText: "https://docs.google.com/...",
                             hintStyle:
@@ -844,8 +882,8 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                                           ),
                                           Container(
                                             decoration: BoxDecoration(
-                                              color:
-                                                  Colors.black.withOpacity(0.4),
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.4),
                                               borderRadius:
                                                   BorderRadius.circular(18),
                                             ),
@@ -903,8 +941,8 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                             color: isDark
-                                ? Colors.redAccent.withOpacity(0.3)
-                                : Colors.redAccent.withOpacity(0.2)),
+                                ? Colors.redAccent.withValues(alpha: 0.3)
+                                : Colors.redAccent.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         children: [
@@ -1010,10 +1048,10 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.redAccent.withOpacity(0.1),
+                color: Colors.redAccent.withValues(alpha: 0.1),
                 blurRadius: 40,
                 offset: const Offset(0, 20),
               ),
@@ -1027,8 +1065,9 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.redAccent.withOpacity(0.1),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  border: Border.all(
+                      color: Colors.redAccent.withValues(alpha: 0.3)),
                 ),
                 child: const Icon(Icons.warning_amber_rounded,
                     color: Colors.redAccent, size: 48),
@@ -1042,7 +1081,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
               Text(
                 "MISSION ABORT",
                 style: GoogleFonts.spaceMono(
-                  color: Colors.redAccent.withOpacity(0.8),
+                  color: Colors.redAccent.withValues(alpha: 0.8),
                   fontSize: 12,
                   letterSpacing: 4,
                   fontWeight: FontWeight.bold,
@@ -1062,7 +1101,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                 "Abandoning this mission will result in 0 XP and it will be marked as 'Failed' on your permanent record.",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                   height: 1.6,
                 ),
@@ -1080,7 +1119,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                       ),
                       child: Text("RESUME",
                           style: GoogleFonts.outfit(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontWeight: FontWeight.bold,
                             letterSpacing: 2,
                           )),
@@ -1098,7 +1137,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
-                        shadowColor: Colors.redAccent.withOpacity(0.5),
+                        shadowColor: Colors.redAccent.withValues(alpha: 0.5),
                       ),
                       child: Text(
                         "ABORT",
@@ -1156,7 +1195,7 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
           style: GoogleFonts.outfit(color: theme.textTheme.bodyLarge?.color),
           decoration: InputDecoration(
             prefixIcon: Icon(icon,
-                color: theme.iconTheme.color?.withOpacity(0.5), size: 20),
+                color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 20),
             hintText: hint,
             hintStyle: GoogleFonts.outfit(color: theme.hintColor),
             filled: true,

@@ -49,7 +49,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                 letterSpacing: 2,
                 color: theme.textTheme.titleLarge?.color)),
         backgroundColor:
-            theme.scaffoldBackgroundColor.withOpacity(0.8), // Glassy-ish
+            theme.scaffoldBackgroundColor.withValues(alpha: 0.8), // Glassy-ish
         foregroundColor: theme.iconTheme.color,
         centerTitle: true,
         elevation: 0,
@@ -85,10 +85,10 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.blueAccent.withOpacity(0.08),
+                  color: Colors.blueAccent.withValues(alpha: 0.08),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.15),
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
                       blurRadius: 120,
                       spreadRadius: 60,
                     ),
@@ -104,10 +104,10 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                 height: 250,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF00C853).withOpacity(0.05),
+                  color: const Color(0xFF00C853).withValues(alpha: 0.05),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00C853).withOpacity(0.1),
+                      color: const Color(0xFF00C853).withValues(alpha: 0.1),
                       blurRadius: 100,
                       spreadRadius: 40,
                     ),
@@ -118,7 +118,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
             // 3. Light Overlay for contrast
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
               ),
             ),
           ],
@@ -149,7 +149,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: theme.disabledColor.withOpacity(0.1)),
+                  color: theme.disabledColor.withValues(alpha: 0.1)),
               child: Icon(Icons.layers_clear_outlined,
                   size: 48, color: theme.disabledColor),
             ),
@@ -163,8 +163,8 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
             const SizedBox(height: 8),
             Text("Check Command Center for new intel.",
                 style: GoogleFonts.outfit(
-                    color:
-                        theme.textTheme.bodyMedium?.color?.withOpacity(0.6))),
+                    color: theme.textTheme.bodyMedium?.color
+                        ?.withValues(alpha: 0.6))),
           ],
         ),
       );
@@ -181,10 +181,10 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
                 color: const Color(0xFF00C853)
-                    .withOpacity(activeDrop != null ? 0.5 : 0.1)),
+                    .withValues(alpha: activeDrop != null ? 0.5 : 0.1)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00C853).withOpacity(0.1),
+                color: const Color(0xFF00C853).withValues(alpha: 0.1),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               )
@@ -202,10 +202,11 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                          color: const Color(0xFF00C853).withOpacity(0.1),
+                          color: const Color(0xFF00C853).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: const Color(0xFF00C853).withOpacity(0.3))),
+                              color: const Color(0xFF00C853)
+                                  .withValues(alpha: 0.3))),
                       child: Row(
                         children: [
                           Container(
@@ -227,7 +228,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                       ),
                     ),
                     Icon(Icons.more_horiz,
-                        color: theme.iconTheme.color?.withOpacity(0.5)),
+                        color: theme.iconTheme.color?.withValues(alpha: 0.5)),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -241,7 +242,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                 Text("Time is ticking. Complete the objective.",
                     style: GoogleFonts.outfit(
                         color: theme.textTheme.bodyMedium?.color
-                            ?.withOpacity(0.7))),
+                            ?.withValues(alpha: 0.7))),
                 const SizedBox(height: 32),
 
                 // Action Buttons
@@ -311,7 +312,7 @@ class _MyDropsPageState extends ConsumerState<MyDropsPage>
                 Text("Mark missions for future execution.",
                     style: GoogleFonts.outfit(
                         color: theme.textTheme.bodyMedium?.color
-                            ?.withOpacity(0.6))),
+                            ?.withValues(alpha: 0.6))),
               ],
             ),
           );

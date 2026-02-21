@@ -4,9 +4,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 
+from .config import settings
+
 # For MVP, keeping it simple. In production, use os.getenv()
 # TODO: Paste your Supabase JWT Secret here (Settings -> API -> JWT Secret)
-SECRET_KEY = "Qdv27Iv3aewQe1oQKWt/0yf2fwN1uvnhq+ANaPiIpWZtYWOLMczaisakLqsX1TtdyxL+n0y8ZjUl1Iy7QrL+tQ=="
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 300 # Long expiry for MVP testing
 

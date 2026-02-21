@@ -10,7 +10,8 @@ import 'user_stats_provider.dart';
 import 'dart:ui'; // Required for ImageFilter
 
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  final String? initialFilter;
+  const HomePage({super.key, this.initialFilter});
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
@@ -20,13 +21,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = "All Drops";
   String _selectedSort = "Newest";
+  bool _initialFilterSet = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialFilter != null) {
+      final f = widget.initialFilter!;
+      _selectedFilter =
+          f.isNotEmpty ? '${f[0].toUpperCase()}${f.substring(1)}' : f;
+      _initialFilterSet = true;
+    }
   }
-
-  bool _initialFilterSet = false;
 
   void _showFilterBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -36,9 +42,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       isScrollControlled: true,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E).withOpacity(0.9),
+          color: const Color(0xFF1E1E1E).withValues(alpha: 0.9),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+          border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
         ),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -55,7 +62,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -63,7 +70,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   const SizedBox(height: 24),
                   Text("Sort Intel",
                       style: GoogleFonts.spaceMono(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 14,
                           letterSpacing: 2,
                           fontWeight: FontWeight.bold)),
@@ -83,7 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         elevation: 0,
                       ),
                       onPressed: () {
-                        this.setState(() {}); // Update main page
+                        setState(() {}); // Update main page
                         Navigator.pop(context);
                       },
                       child: Text("APPLY FILTERS",
@@ -150,7 +157,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // Smart Filter Initialization
     ref.listen(userStatsProvider, (previous, next) {
-      if (!_initialFilterSet && next.hasValue) {
+      if (!_initialFilterSet && next.hasValue && widget.initialFilter == null) {
         final stats = next.value!;
         if (stats.xpBreakdown.isNotEmpty) {
           // Find dominant skill
@@ -174,55 +181,71 @@ class _HomePageState extends ConsumerState<HomePage> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // 1. Dynamic Background
-          if (isDark) ...[
-            // Animated blobs could go here using a package like mesh_gradient
-            // For now, we use our static but blurred orbs
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF00C853).withOpacity(0.08),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00C853).withOpacity(0.15),
-                      blurRadius: 120,
-                      spreadRadius: 60,
-                    ),
+          // 1. Ambient Background Mesh (Same as ProfilePage)
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF4F46E5)
+                        .withValues(alpha: isDark ? 0.2 : 0.05), // Indigo
+                    Colors.transparent,
                   ],
                 ),
               ),
             ),
-            Positioned(
-              bottom: 100,
-              left: -50,
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blueAccent.withOpacity(0.08),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.15),
-                      blurRadius: 120,
-                      spreadRadius: 60,
-                    ),
+          )
+              .animate()
+              .scale(duration: 3.seconds, curve: Curves.easeInOut)
+              .fadeIn(),
+          Positioned(
+            top: 200,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF06B6D4)
+                        .withValues(alpha: isDark ? 0.15 : 0.05), // Cyan
+                    Colors.transparent,
                   ],
                 ),
               ),
             ),
-            // 3. Light Overlay for contrast
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.2),
+          )
+              .animate()
+              .scale(duration: 4.seconds, curve: Curves.easeInOut)
+              .fadeIn(delay: 500.ms),
+          // Third orb for variety
+          Positioned(
+            bottom: 150,
+            right: -80,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF10B981)
+                        .withValues(alpha: isDark ? 0.12 : 0.04), // Emerald
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-          ],
+          )
+              .animate()
+              .scale(duration: 3.5.seconds, curve: Curves.easeInOut)
+              .fadeIn(delay: 300.ms),
 
           // 2. Glassmorphic Content
           SafeArea(
@@ -238,15 +261,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                           drop.difficulty.toLowerCase().contains(query);
 
                   bool matchesFilter = true;
-                  if (_selectedFilter == "All Drops")
+                  if (_selectedFilter == "All Drops") {
                     matchesFilter = true;
-                  else if (_selectedFilter == "High Reward")
+                  } else if (_selectedFilter == "High Reward") {
                     matchesFilter = drop.rewardXp >= 100;
-                  else if (_selectedFilter == "Quick")
+                  } else if (_selectedFilter == "Quick") {
                     matchesFilter = drop.timeLimitMinutes <= 120;
-                  else
+                  } else {
                     matchesFilter = drop.domain.toLowerCase() ==
                         _selectedFilter.toLowerCase();
+                  }
 
                   return matchesSearch && matchesFilter;
                 }).toList();
@@ -307,7 +331,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                 style: GoogleFonts.spaceMono(
                                                     color: theme.textTheme
                                                         .bodyMedium?.color
-                                                        ?.withOpacity(0.6),
+                                                        ?.withValues(
+                                                            alpha: 0.6),
                                                     fontSize: 10,
                                                     letterSpacing: 3,
                                                     fontWeight:
@@ -322,7 +347,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                 decoration: BoxDecoration(
                                                     color:
                                                         const Color(0xFF00C853)
-                                                            .withOpacity(0.2),
+                                                            .withValues(
+                                                                alpha: 0.2),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             4)),
@@ -368,7 +394,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             width: 140,
                                             decoration: BoxDecoration(
                                               color: theme.dividerColor
-                                                  .withOpacity(0.2),
+                                                  .withValues(alpha: 0.2),
                                               borderRadius:
                                                   BorderRadius.circular(2),
                                             ),
@@ -386,7 +412,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                     BoxShadow(
                                                       color: const Color(
                                                               0xFF00C853)
-                                                          .withOpacity(0.5),
+                                                          .withValues(
+                                                              alpha: 0.5),
                                                       blurRadius: 6,
                                                     )
                                                   ],
@@ -404,13 +431,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                                         width: 44,
                                         height: 44,
                                         decoration: BoxDecoration(
-                                          color:
-                                              theme.cardColor.withOpacity(0.5),
+                                          color: theme.cardColor
+                                              .withValues(alpha: 0.5),
                                           borderRadius:
                                               BorderRadius.circular(14),
                                           border: Border.all(
                                               color: theme.dividerColor
-                                                  .withOpacity(0.3)),
+                                                  .withValues(alpha: 0.3)),
                                         ),
                                         child: Icon(
                                             Icons.notifications_none_rounded,
@@ -451,7 +478,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                       gradient: LinearGradient(
                                           colors: [
                                             const Color(0xFF00C853)
-                                                .withOpacity(0.5),
+                                                .withValues(alpha: 0.5),
                                             Colors.transparent
                                           ],
                                           begin: Alignment.topLeft,
@@ -460,7 +487,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF00C853)
-                                          .withOpacity(0.1),
+                                          .withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(23),
                                     ),
                                     child: Row(
@@ -528,114 +555,139 @@ class _HomePageState extends ConsumerState<HomePage> {
                         child: Column(
                           children: [
                             // Glass Search Bar
-                            Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                // Better visibility in light mode: darker background if not dark mode
-                                color: isDark
-                                    ? theme.cardColor.withOpacity(0.3)
-                                    : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.1)
-                                        : Colors.grey.withOpacity(0.3)),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: BackdropFilter(
-                                  filter:
-                                      ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                  child: Row(
-                                    children: [
-                                      const SizedBox(width: 20),
-                                      Icon(Icons.search,
-                                          color: theme.iconTheme.color
-                                              ?.withOpacity(0.5)),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _searchController,
-                                          onChanged: (val) => setState(() {}),
-                                          style: GoogleFonts.outfit(
-                                              color: theme
-                                                  .textTheme.bodyLarge?.color),
-                                          decoration: InputDecoration(
-                                            hintText:
-                                                "Search intel database...",
-                                            hintStyle: GoogleFonts.outfit(
-                                                color: theme
-                                                    .textTheme.bodyMedium?.color
-                                                    ?.withOpacity(0.4)),
-                                            border: InputBorder.none,
-                                          ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? theme.cardColor
+                                              .withValues(alpha: 0.3)
+                                          : Colors.grey.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: isDark
+                                              ? Colors.white
+                                                  .withValues(alpha: 0.1)
+                                              : Colors.grey
+                                                  .withValues(alpha: 0.3)),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                            sigmaX: 10, sigmaY: 10),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 20),
+                                            Icon(Icons.search,
+                                                color: theme.iconTheme.color
+                                                    ?.withValues(alpha: 0.5)),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextField(
+                                                controller: _searchController,
+                                                onChanged: (val) =>
+                                                    setState(() {}),
+                                                style: GoogleFonts.outfit(
+                                                    color: theme.textTheme
+                                                        .bodyLarge?.color),
+                                                decoration: InputDecoration(
+                                                  hintText: "Search intel...",
+                                                  hintStyle: GoogleFonts.outfit(
+                                                      color: theme.textTheme
+                                                          .bodyMedium?.color
+                                                          ?.withValues(
+                                                              alpha: 0.4)),
+                                                  border: InputBorder.none,
+                                                ),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons
+                                                  .tune_rounded), // Filter Icon
+                                              color: theme.iconTheme.color
+                                                  ?.withValues(alpha: 0.7),
+                                              onPressed: () =>
+                                                  _showFilterBottomSheet(
+                                                      context),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(
-                                            Icons.tune_rounded), // Filter Icon
-                                        color: theme.iconTheme.color
-                                            ?.withOpacity(0.7),
-                                        onPressed: () =>
-                                            _showFilterBottomSheet(context),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            SizedBox(
-                              height: 40,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                children: [
-                                  _buildFilterChip("All Drops"),
-                                  _buildFilterChip("High Reward"),
-                                  _buildFilterChip("Quick"),
-                                  _buildFilterChip("Frontend"),
-                                  _buildFilterChip("Backend"),
-                                  _buildFilterChip("Cloud"),
-                                  _buildFilterChip("Design"),
-                                  _buildFilterChip("Product"),
-                                  _buildFilterChip("AI"),
-                                ],
-                              ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
 
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                    // Filter Chips Row
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: SizedBox(
+                        height: 36,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
                           children: [
-                            Text(
-                              "AVAILABLE MISSIONS",
-                              style: GoogleFonts.spaceMono(
-                                  color: theme.textTheme.bodyMedium?.color
-                                      ?.withOpacity(0.6),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2),
-                            ),
-                            Text(
-                              "${filteredDrops.length} FOUND",
-                              style: GoogleFonts.spaceMono(
-                                  color:
-                                      const Color(0xFF00C853).withOpacity(0.8),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1),
-                            ),
+                            _buildFilterChip("All Drops"),
+                            _buildFilterChip("New"),
+                            _buildFilterChip("Trending"),
                           ],
                         ),
                       ),
                     ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                    // Explore Link
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => context.go('/explore'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 4, horizontal: 4),
+                              color: Colors.transparent, // Hit test target
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "EXPLORE",
+                                    style: GoogleFonts.spaceMono(
+                                      color: theme.textTheme.bodyMedium?.color
+                                          ?.withValues(alpha: 0.8),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.explore_outlined,
+                                    size: 18,
+                                    color: theme.textTheme.bodyMedium?.color
+                                        ?.withValues(alpha: 0.8),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
                     filteredDrops.isEmpty
                         ? SliverToBoxAdapter(
@@ -645,14 +697,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 children: [
                                   Icon(Icons.wifi_off_rounded,
                                       size: 48,
-                                      color:
-                                          theme.disabledColor.withOpacity(0.3)),
+                                      color: theme.disabledColor
+                                          .withValues(alpha: 0.3)),
                                   const SizedBox(height: 16),
                                   Text(
                                     "NO INTEL DETECTED",
                                     style: GoogleFonts.spaceMono(
                                         color: theme.disabledColor
-                                            .withOpacity(0.5),
+                                            .withValues(alpha: 0.5),
                                         letterSpacing: 2),
                                   )
                                 ],
@@ -698,25 +750,25 @@ class _HomePageState extends ConsumerState<HomePage> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          // Fix for light mode: Ensure contrast for unselected chips
           color: isSelected
               ? (isDark ? Colors.white : Colors.black)
-              : (isDark ? Colors.transparent : Colors.grey.withOpacity(0.1)),
+              : (isDark
+                  ? Colors.transparent
+                  : Colors.grey.withValues(alpha: 0.1)),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
               color: isSelected
                   ? Colors.transparent
                   : (isDark
-                      ? theme.dividerColor.withOpacity(0.3)
-                      : Colors.black
-                          .withOpacity(0.1))), // Stronger border in light mode
+                      ? theme.dividerColor.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.1))),
         ),
         child: Text(
           label.toUpperCase(),
           style: GoogleFonts.outfit(
               color: isSelected
                   ? (isDark ? Colors.black : Colors.white)
-                  : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               fontWeight: FontWeight.bold,
               fontSize: 10,
               letterSpacing: 1),
@@ -738,35 +790,15 @@ class DropCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isEnrolled = activeDrop?.id == drop.id;
 
-    // Unlocking Logic
-    final userStats = ref.watch(userStatsProvider).valueOrNull;
-
-    bool isLocked = false;
-    int requiredLevel = 1;
-    String userDomainRank = "Novice"; // Default
-
-    // Determine user's level IN THIS SPECIFIC DOMAIN
-    int domainLevel = 1;
-    if (userStats != null && userStats.xpBreakdown.isNotEmpty) {
-      final domainKey = drop.domain.toLowerCase();
-      final domainXp = userStats.xpBreakdown[domainKey] as int? ?? 0;
-      domainLevel = (domainXp / 1000).floor() + 1;
-    }
-
-    if (drop.difficulty.toLowerCase() == 'medium') requiredLevel = 2;
-    if (drop.difficulty.toLowerCase() == 'hard') requiredLevel = 5;
-
-    if (domainLevel < requiredLevel) isLocked = true;
-
     return Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: isLocked ? theme.cardColor.withOpacity(0.5) : theme.cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isEnrolled
                 ? const Color(0xFF00C853)
-                : theme.dividerColor.withOpacity(0.2),
+                : theme.dividerColor.withValues(alpha: 0.2),
             width: isEnrolled ? 1.5 : 1,
           ),
         ),
@@ -775,12 +807,6 @@ class DropCard extends ConsumerWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(24),
             onTap: () {
-              if (isLocked) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(
-                        "LOCKED: Reach Level $requiredLevel in ${drop.domain} to access.")));
-                return;
-              }
               isEnrolled
                   ? context.push('/execution', extra: drop)
                   : context.push('/drop', extra: drop);
@@ -789,143 +815,124 @@ class DropCard extends ConsumerWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Opacity(
-                    opacity: isLocked ? 0.3 : 1.0,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildDomainTag(context, drop.domain),
-                            Row(
-                              children: [
-                                if (drop.sourceType == 'B')
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 8),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color:
-                                                Colors.blue.withOpacity(0.5))),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.public,
-                                            size: 10, color: Colors.blueAccent),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          "OPEN SOURCE",
-                                          style: GoogleFonts.spaceMono(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blueAccent),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDomainTag(context, drop.domain),
+                          Row(
+                            children: [
+                              if (drop.sourceType == 'B')
                                 Container(
+                                  margin: const EdgeInsets.only(right: 8),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                      color: theme.scaffoldBackgroundColor,
+                                      color: Colors.blue.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                          color: theme.dividerColor
-                                              .withOpacity(0.5))),
-                                  child: Text(
-                                    drop.difficulty.toUpperCase(),
-                                    style: GoogleFonts.spaceMono(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            theme.textTheme.bodySmall?.color),
+                                          color: Colors.blue
+                                              .withValues(alpha: 0.5))),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.public,
+                                          size: 10, color: Colors.blueAccent),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        "OPEN SOURCE",
+                                        style: GoogleFonts.spaceMono(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blueAccent),
+                                      ),
+                                    ],
                                   ),
-                                )
-                              ],
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          drop.title,
-                          style: GoogleFonts.outfit(
-                              color: theme.textTheme.titleLarge?.color,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              height: 1.2),
-                        ),
-                        const SizedBox(height: 24),
+                                ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color: theme.scaffoldBackgroundColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: theme.dividerColor
+                                            .withValues(alpha: 0.5))),
+                                child: Text(
+                                  drop.difficulty.toUpperCase(),
+                                  style: GoogleFonts.spaceMono(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.textTheme.bodySmall?.color),
+                                ),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        drop.title,
+                        style: GoogleFonts.outfit(
+                            color: theme.textTheme.titleLarge?.color,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Stats Grid
-                        Row(
-                          children: [
-                            Expanded(
+                      // Stats Grid
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStat(
+                                context,
+                                "REWARD",
+                                "${drop.rewardXp} XP",
+                                const Color(0xFFFFD700) // Gold
+                                ),
+                          ),
+                          Container(
+                              width: 1, height: 24, color: theme.dividerColor),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 16),
                               child: _buildStat(
                                   context,
-                                  "REWARD",
-                                  "${drop.rewardXp} XP",
-                                  const Color(0xFFFFD700) // Gold
-                                  ),
+                                  "TIME EST.",
+                                  "${drop.timeLimitMinutes} MIN",
+                                  theme.textTheme.bodyLarge?.color
+                                          ?.withValues(alpha: 0.8) ??
+                                      Colors.white),
                             ),
-                            Container(
-                                width: 1,
-                                height: 24,
-                                color: theme.dividerColor),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 16),
-                                child: _buildStat(
-                                    context,
-                                    "TIME EST.",
-                                    "${drop.timeLimitMinutes} MIN",
-                                    theme.textTheme.bodyLarge?.color
-                                            ?.withOpacity(0.8) ??
-                                        Colors.white),
-                              ),
-                            ),
+                          ),
 
-                            // Action Arrow
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isEnrolled
-                                      ? const Color(0xFF00C853)
-                                      : (isDark
-                                          ? Colors.white.withOpacity(0.1)
-                                          : theme.scaffoldBackgroundColor)),
-                              child: Icon(
-                                  isEnrolled
-                                      ? Icons.pause
-                                      : Icons.arrow_forward,
-                                  size: 16,
-                                  color: isEnrolled
-                                      ? Colors.white
-                                      : (isDark
-                                          ? Colors.white
-                                          : theme.iconTheme.color)),
-                            )
-                          ],
-                        )
-                      ],
-                    ),
+                          // Action Arrow
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isEnrolled
+                                    ? const Color(0xFF00C853)
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : theme.scaffoldBackgroundColor)),
+                            child: Icon(
+                                isEnrolled ? Icons.pause : Icons.arrow_forward,
+                                size: 16,
+                                color: isEnrolled
+                                    ? Colors.white
+                                    : (isDark
+                                        ? Colors.white
+                                        : theme.iconTheme.color)),
+                          )
+                        ],
+                      )
+                    ],
                   ),
                 ),
-                if (isLocked)
-                  Positioned.fill(
-                      child: Center(
-                          child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.lock_outline,
-                        size: 32, color: Colors.white),
-                  )))
               ],
             ),
           ),
@@ -941,7 +948,7 @@ class DropCard extends ConsumerWidget {
         Text(
           label,
           style: GoogleFonts.spaceMono(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 1),
@@ -961,9 +968,9 @@ class DropCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: color.withOpacity(0.5))),
+          border: Border.all(color: color.withValues(alpha: 0.5))),
       child: Text(
         domain.toUpperCase(),
         style: GoogleFonts.outfit(
@@ -991,8 +998,6 @@ class DropCard extends ConsumerWidget {
         return Colors.deepPurpleAccent;
       case 'product':
         return Colors.yellowAccent;
-      case 'ai':
-        return Colors.purpleAccent;
       default:
         return Colors.grey;
     }

@@ -21,7 +21,7 @@ class StatsControlPanel extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: theme.dividerColor.withOpacity(0.06)),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.06)),
         ),
         child: userStatsAsync.when(
           data: (stats) => Row(
@@ -38,6 +38,9 @@ class StatsControlPanel extends StatelessWidget {
               Container(width: 1, height: 40, color: theme.dividerColor),
               _buildStatItem(context, "DROPS", "${stats.completedDrops}",
                   const Color(0xFF06B6D4)),
+              Container(width: 1, height: 40, color: theme.dividerColor),
+              _buildStatItem(
+                  context, "EARNINGS", "0 Rs", const Color(0xFF00C853)),
             ],
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -74,7 +77,8 @@ class StatsControlPanel extends StatelessWidget {
               label,
               style: GoogleFonts.spaceMono(
                   fontSize: 10,
-                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                  color:
+                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w600),
             ),
           ],

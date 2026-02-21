@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
+import '../../auth/presentation/auth_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -117,7 +117,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             Text(
               "Made with 💙 by DevApp Team",
               style: GoogleFonts.outfit(
-                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                  color:
+                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                   fontSize: 12),
             ),
             const SizedBox(height: 12),
@@ -136,7 +137,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           padding: const EdgeInsets.only(left: 12.0),
           child: Text(title,
               style: GoogleFonts.spaceMono(
-                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                  color:
+                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                   letterSpacing: 2,
                   fontWeight: FontWeight.bold,
                   fontSize: 12)),
@@ -146,7 +148,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+            border:
+                Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
           ),
           child: Column(children: children),
         ),
@@ -164,7 +167,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: theme.dividerColor.withOpacity(0.1),
+            color: theme.dividerColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: theme.iconTheme.color, size: 20),
@@ -175,13 +178,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle,
             style: GoogleFonts.outfit(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                color:
+                    theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                 fontSize: 12)),
         trailing: Switch.adaptive(
           value: value,
           onChanged: onChanged,
           activeColor: const Color(0xFF4F46E5),
-          activeTrackColor: const Color(0xFF4F46E5).withOpacity(0.3),
+          activeTrackColor: const Color(0xFF4F46E5).withValues(alpha: 0.3),
         ),
       ),
     );
@@ -199,8 +203,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: isDestructive
-                ? const Color(0xFFFF4C4C).withOpacity(0.1)
-                : theme.dividerColor.withOpacity(0.1),
+                ? const Color(0xFFFF4C4C).withValues(alpha: 0.1)
+                : theme.dividerColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon,
@@ -217,7 +221,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle,
             style: GoogleFonts.outfit(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                color:
+                    theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                 fontSize: 12)),
         trailing: Icon(Icons.chevron_right, color: theme.disabledColor),
       ),
@@ -245,7 +250,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               .textTheme
                               .bodyMedium
                               ?.color
-                              ?.withOpacity(0.5),
+                              ?.withValues(alpha: 0.5),
                           letterSpacing: 2,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
@@ -304,7 +309,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     child: Text("Cancel",
                         style: TextStyle(
                             color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.5)))),
+                                ?.withValues(alpha: 0.5)))),
                 TextButton(
                     onPressed: () {
                       Navigator.pop(context);
@@ -331,7 +336,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5)),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -348,7 +353,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               backgroundColor: theme.cardColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
-                  side: BorderSide(color: Colors.redAccent.withOpacity(0.2))),
+                  side: BorderSide(
+                      color: Colors.redAccent.withValues(alpha: 0.2))),
               title: Row(
                 children: [
                   const Icon(Icons.warning_amber_rounded,
@@ -363,8 +369,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               content: Text(
                   "This action cannot be undone. All your data, drops, and earnings will be permanently removed.",
                   style: GoogleFonts.outfit(
-                      color:
-                          theme.textTheme.bodyMedium?.color?.withOpacity(0.7))),
+                      color: theme.textTheme.bodyMedium?.color
+                          ?.withValues(alpha: 0.7))),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -374,9 +380,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      // Add logic to delete account
+                      await ref
+                          .read(authControllerProvider.notifier)
+                          .deleteAccount();
                     },
                     child: const Text("Delete Forever",
                         style: TextStyle(
