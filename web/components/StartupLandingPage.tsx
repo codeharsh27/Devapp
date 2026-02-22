@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import ManifestoModal from "./ManifestoModal";
 import ProtocolModal from "./ProtocolModal";
 import LegalModal from "./LegalModal";
+import SmartAuthLink from "./SmartAuthLink";
 
 // --- Components ---
 
@@ -42,9 +43,9 @@ function Navbar() {
                     <Link href="/" className="hidden md:block px-6 py-2 text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors">
                         For Developers
                     </Link>
-                    <Link href="/startup/dashboard/login?view=signup&role=startup" className="px-6 py-2 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">
+                    <SmartAuthLink role="startup" loggedInHref="/startup/dashboard" guestHref="/startup/dashboard/login?view=signup&role=startup" className="px-6 py-2 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">
                         Start Delegating
-                    </Link>
+                    </SmartAuthLink>
                 </div>
             </div>
         </nav>
@@ -78,9 +79,9 @@ function Hero() {
                     </p>
 
                     <div className="flex flex-col md:flex-row gap-4 justify-center">
-                        <Link href="/startup/dashboard/login?view=signup&role=startup" className="h-14 px-8 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center justify-center">
+                        <SmartAuthLink role="startup" loggedInHref="/startup/dashboard" guestHref="/startup/dashboard/login?view=signup&role=startup" className="h-14 px-8 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center justify-center">
                             Post First Drop
-                        </Link>
+                        </SmartAuthLink>
                         <Link href="#drops" className="h-14 px-8 border border-white/20 text-white text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center">
                             View Open Missions
                         </Link>
