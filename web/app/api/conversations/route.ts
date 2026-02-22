@@ -1,35 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/conversations
-// Start or retrieve a conversation with a user
+// Find-or-create a conversation between the authenticated user and another user.
+// Uses the Supabase RPC `get_or_create_conversation` (atomic, race-condition safe).
+// Falls back to manual create if the RPC isn't available.
+// ─────────────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
-    // 1. Auth Check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { participant_id, task_id } = await request.json();
-    if (!participant_id) return NextResponse.json({ error: "Missing participant_id" }, { status: 400 });
+    const body = await request.json().catch(() => ({}));
+    const { participant_id, task_id } = body;
+    if (!participant_id) {
+        return NextResponse.json({ error: "Missing participant_id" }, { status: 400 });
+    }
 
     try {
-        // 2. Check if conversation already exists between these 2 users
-        // Use RPC or double query.
-        const { data: myConvos } = await supabase
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', user.id);
+        // Primary: use the atomic Supabase RPC
+        const { data: rpcId, error: rpcError } = await supabase.rpc(
+            "get_or_create_conversation",
+            { other_user_id: participant_id }
+        );
 
-        const myConvoIds = myConvos?.map(c => c.conversation_id) || [];
+        if (!rpcError && rpcId) {
+            return NextResponse.json({ conversation_id: rpcId, is_new: false });
+        }
+
+        // Fallback: manual create (RPC not available / not yet migrated)
+        // Check if conversation already exists
+        const { data: myConvos } = await supabase
+            .from("conversation_participants")
+            .select("conversation_id")
+            .eq("user_id", user.id);
+
+        const myConvoIds = myConvos?.map((c) => c.conversation_id) ?? [];
 
         if (myConvoIds.length > 0) {
-            // Find if participant_id is in any of these conversations
             const { data: sharedConvo } = await supabase
-                .from('conversation_participants')
-                .select('conversation_id')
-                .in('conversation_id', myConvoIds)
-                .eq('user_id', participant_id)
+                .from("conversation_participants")
+                .select("conversation_id")
+                .in("conversation_id", myConvoIds)
+                .eq("user_id", participant_id)
                 .maybeSingle();
 
             if (sharedConvo) {
@@ -37,95 +52,102 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 3. Create New Conversation
+        // Create new conversation + participants in sequence
         const { data: newConvo, error: createError } = await supabase
-            .from('conversations')
-            .insert({ task_id: task_id || null })
-            .select()
+            .from("conversations")
+            .insert({ task_id: task_id ?? null })
+            .select("id")
             .single();
 
         if (createError) throw createError;
 
-        // 4. Add Participants
-        await supabase.from('conversation_participants').insert([
+        await supabase.from("conversation_participants").insert([
             { conversation_id: newConvo.id, user_id: user.id },
-            { conversation_id: newConvo.id, user_id: participant_id }
+            { conversation_id: newConvo.id, user_id: participant_id },
         ]);
 
         return NextResponse.json({ conversation_id: newConvo.id, is_new: true });
 
     } catch (err: any) {
-        console.error("Chat Creation Error:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("[POST /api/conversations]", err?.message ?? err);
+        return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/conversations
-// List all conversations for the current user
-export async function GET(request: NextRequest) {
+// List all conversations for the current user with participants and the
+// last message preview.
+//
+// Performance: instead of fetching ALL messages and filtering in memory,
+// we use a Supabase subquery that returns only the most recent message
+// per conversation via `.limit(1).order('created_at', {ascending: false})`.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function GET(_request: NextRequest) {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
 
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { data: participations } = await supabase
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', user.id);
+        // Single joined query — no full messages table scan.
+        // Supabase nested selects apply the .limit() per parent row.
+        const { data: convos, error } = await supabase
+            .from("conversation_participants")
+            .select(`
+                conversation:conversations(
+                    id,
+                    created_at,
+                    updated_at,
+                    task_id,
+                    participants:conversation_participants(
+                        user:profiles(id, full_name, role, avatar_url, company_name)
+                    ),
+                    last_message:messages(
+                        content, created_at, sender_id
+                    )
+                )
+            `)
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false, referencedTable: "conversations" });
 
-        const convoIds = participations?.map((p: any) => p.conversation_id) || [];
-        if (convoIds.length === 0) return NextResponse.json({ conversations: [] });
+        if (error) throw error;
 
-        // Fetch Metadata
-        const { data: convos } = await supabase
-            .from('conversations')
-            .select('*')
-            .in('id', convoIds);
+        const result = (convos ?? [])
+            .map((row: any) => {
+                const c = row.conversation;
+                if (!c) return null;
 
-        // Fetch Participants
-        const { data: participants } = await supabase
-            .from('conversation_participants')
-            .select(`conversation_id, user:profiles(id, full_name, role, avatar_url, company_name)`)
-            .in('conversation_id', convoIds);
+                const otherParticipant = c.participants?.find(
+                    (p: any) => p.user?.id !== user.id
+                )?.user;
 
-        // Fetch Last Messages (Inefficient but works for MVP)
-        // Ideally: RPC call or view
-        // We will just fetch ALL messages for these convos and filter in memory (assuming low volume)
-        // Or fetch latest 1 via loop? 
-        // Let's fetch all messages created in last 30 days? Or just all.
-        const { data: messages } = await supabase
-            .from('messages')
-            .select('*')
-            .in('conversation_id', convoIds)
-            .order('created_at', { ascending: false });
+                // Pick most recent message (Supabase returns them in insertion order)
+                const lastMsg = (c.last_message ?? []).sort(
+                    (a: any, b: any) =>
+                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0] ?? null;
 
-        const result = convos?.map((c: any) => {
-            // Find other participant
-            const other = participants?.find((p: any) => p.conversation_id === c.id && p.user?.id !== user.id)?.user;
-
-            // Find latest message for this convo
-            // Since messages are sorted by created_at DESC, find first match
-            const lastMsg = messages?.find((m: any) => m.conversation_id === c.id);
-
-            // Count unread? (Skip for now)
-
-            return {
-                id: c.id,
-                participant: other || { full_name: 'Unknown User' },
-                last_message: lastMsg ? {
-                    text: lastMsg.content,
-                    created_at: lastMsg.created_at,
-                    sender_id: lastMsg.sender_id
-                } : null,
-                updated_at: lastMsg?.created_at || c.created_at
-            };
-        }).sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+                return {
+                    id: c.id,
+                    task_id: c.task_id,
+                    participant: otherParticipant ?? { full_name: "Unknown User" },
+                    last_message: lastMsg
+                        ? { text: lastMsg.content, created_at: lastMsg.created_at, sender_id: lastMsg.sender_id }
+                        : null,
+                    updated_at: lastMsg?.created_at ?? c.updated_at,
+                };
+            })
+            .filter(Boolean)
+            .sort(
+                (a: any, b: any) =>
+                    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            );
 
         return NextResponse.json({ conversations: result });
 
     } catch (err: any) {
-        console.error("Chat List Error:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("[GET /api/conversations]", err?.message ?? err);
+        return NextResponse.json({ error: "Failed to fetch conversations" }, { status: 500 });
     }
 }

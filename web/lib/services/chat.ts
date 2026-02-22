@@ -1,133 +1,123 @@
-
 import { createClient } from "@/lib/supabase/client";
 
 export async function createChatService() {
     const supabase = createClient();
 
     return {
+        /**
+         * Fetch all conversations for a user with the last message preview.
+         * Uses a single joined query instead of fetching all messages separately.
+         */
         async getConversations(userId: string) {
-            try {
-                // Fetch Conversations where user is a participant
-                const { data: myConvos, error: convosError } = await supabase
-                    .from('conversation_participants')
-                    .select('conversation_id')
-                    .eq('user_id', userId);
+            const { data: convos, error } = await supabase
+                .from("conversations")
+                .select(`
+                    id,
+                    updated_at,
+                    task_id,
+                    participants:conversation_participants(
+                        user:profiles(id, full_name, avatar_url, role, company_name)
+                    ),
+                    last_message:messages(content, created_at, sender_id)
+                `)
+                .order("updated_at", { ascending: false });
 
-                if (convosError) {
-                    console.error("Error fetching conversation participants:", convosError);
-                    throw convosError;
-                }
+            if (error) throw error;
 
-                if (!myConvos || myConvos.length === 0) return [];
+            return (convos ?? []).map((c: any) => {
+                const otherParticipant = c.participants?.find(
+                    (p: any) => p.user?.id !== userId
+                )?.user;
 
-                const conversationIds = myConvos.map(c => c.conversation_id);
-
-                // Fetch details
-                const { data: convos, error } = await supabase
-                    .from('conversations')
-                    .select(`
-                        id, 
-                        updated_at,
-                        participants:conversation_participants(
-                            user:profiles(id, full_name, avatar_url, role)
-                        ),
-                        messages(content, created_at, sender_id)
-                    `)
-                    .in('id', conversationIds)
-                    .order('updated_at', { ascending: false });
-
-                if (error) {
-                    console.error("Error fetching conversations details:", error);
-                    throw error;
-                }
-
-                return convos.map((c: any) => {
-                    const otherParticipant = c.participants.find((p: any) => p.user?.id !== userId)?.user;
-                    const target = otherParticipant || c.participants[0]?.user || { full_name: "Unknown User" };
-
-                    // Sorting messages to get last one
-                    const sortedMessages = c.messages?.sort((a: any, b: any) =>
+                // messages are returned by Supabase in insertion order;
+                // pick the most recent by sorting on the client (small array).
+                const sortedMessages = [...(c.last_message ?? [])].sort(
+                    (a: any, b: any) =>
                         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                    );
-                    const lastMsg = sortedMessages?.[0];
+                );
+                const lastMsg = sortedMessages[0] ?? null;
 
-                    return {
-                        id: c.id,
-                        participant: target,
-                        last_message: lastMsg ? { text: lastMsg.content, created_at: lastMsg.created_at } : null,
-                        updated_at: c.updated_at
-                    };
-                });
-            } catch (error) {
-                console.error("getConversations failed:", error);
-                throw error;
-            }
+                return {
+                    id: c.id,
+                    task_id: c.task_id,
+                    participant: otherParticipant ?? { full_name: "Unknown User" },
+                    last_message: lastMsg
+                        ? { text: lastMsg.content, created_at: lastMsg.created_at, sender_id: lastMsg.sender_id }
+                        : null,
+                    updated_at: lastMsg?.created_at ?? c.updated_at,
+                };
+            });
         },
 
+        /**
+         * Fetch all messages in a conversation, oldest first.
+         */
         async getMessages(conversationId: string) {
-            try {
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .eq('conversation_id', conversationId)
-                    .order('created_at', { ascending: true });
+            const { data, error } = await supabase
+                .from("messages")
+                .select("*")
+                .eq("conversation_id", conversationId)
+                .order("created_at", { ascending: true });
 
-                if (error) {
-                    console.error("Error fetching messages:", error);
-                    throw error;
-                }
-                return data;
-            } catch (error) {
-                console.error("getMessages failed:", error);
-                throw error;
-            }
+            if (error) throw error;
+            return data ?? [];
         },
 
+        /**
+         * Send a message to a conversation and bump the conversation's updated_at.
+         */
         async sendMessage(conversationId: string, content: string, senderId: string) {
-            try {
-                const { error } = await supabase
-                    .from('messages')
-                    .insert({
-                        conversation_id: conversationId,
-                        sender_id: senderId,
-                        content
-                    });
+            const { error } = await supabase.from("messages").insert({
+                conversation_id: conversationId,
+                sender_id: senderId,
+                content,
+            });
 
-                if (error) {
-                    console.error("Error sending message:", error);
-                    throw error;
-                }
+            if (error) throw error;
 
-                const { error: updateError } = await supabase
-                    .from('conversations')
-                    .update({ updated_at: new Date().toISOString() })
-                    .eq('id', conversationId);
-
-                if (updateError) {
-                    console.error("Error updating conversation timestamp:", updateError);
-                }
-            } catch (error) {
-                console.error("sendMessage failed:", error);
-                throw error;
-            }
+            // Bump updated_at so the conversation sorts to the top
+            await supabase
+                .from("conversations")
+                .update({ updated_at: new Date().toISOString() })
+                .eq("id", conversationId);
         },
 
-        async startConversation(myId: string, otherId: string) {
-            try {
-                const { data, error } = await supabase.rpc('create_new_conversation', {
-                    other_user_id: otherId
-                });
+        /**
+         * Find or create a conversation between the current user and another user.
+         *
+         * Uses the Supabase RPC `get_or_create_conversation` (defined in
+         * supabase/schema/99_realtime_and_functions.sql) which handles the
+         * race-condition safe atomic create-or-return logic.
+         *
+         * Falls back to the REST API route `/api/conversations` if the RPC
+         * is not available (e.g., during local development before migrations run).
+         */
+        async startConversation(myId: string, otherId: string): Promise<string> {
+            // Primary path: Supabase RPC (get_or_create_conversation)
+            // Note: RPC name must match exactly what's in your Supabase migrations.
+            const { data, error } = await supabase.rpc("get_or_create_conversation", {
+                other_user_id: otherId,
+            });
 
-                if (error) {
-                    console.error("RPC Error creating conversation:", error);
-                    throw error;
-                }
-
-                return data;
-            } catch (error) {
-                console.error("startConversation failed:", error);
-                throw error;
+            if (!error && data) {
+                return data as string;
             }
-        }
+
+            // Fallback: REST API route (handles creation manually)
+            // This path is hit if the RPC doesn't exist yet or returns an error.
+            const resp = await fetch("/api/conversations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ participant_id: otherId }),
+            });
+
+            if (!resp.ok) {
+                const body = await resp.json().catch(() => ({}));
+                throw new Error(body.error ?? `Failed to start conversation (${resp.status})`);
+            }
+
+            const body = await resp.json();
+            return body.conversation_id as string;
+        },
     };
 }

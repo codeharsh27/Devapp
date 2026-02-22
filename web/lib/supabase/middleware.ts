@@ -1,14 +1,20 @@
-
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { isStartupRole } from "@/lib/auth/roles";
+import { isStartupRole, isTalentRole } from "@/lib/auth/roles";
+
+// Routes that authenticated users should not be able to re-visit
+const AUTH_PATHS = ["/auth", "/login", "/signup", "/startup/dashboard/login"];
+// Protected dashboard paths
+const STARTUP_PREFIX = "/startup/dashboard";
+const TALENT_PREFIX = "/talent/dashboard";
+
+function isAuthPath(path: string): boolean {
+    return AUTH_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+}
 
 export const updateSession = async (request: NextRequest) => {
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
-    });
+    // We create a mutable response so that cookie refreshes are propagated.
+    let response = NextResponse.next({ request: { headers: request.headers } });
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,9 +28,7 @@ export const updateSession = async (request: NextRequest) => {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     );
-                    response = NextResponse.next({
-                        request,
-                    });
+                    response = NextResponse.next({ request });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
                     );
@@ -33,69 +37,76 @@ export const updateSession = async (request: NextRequest) => {
         }
     );
 
-    // 1. Fetch User
+    // ── 1. Resolve the authenticated user ───────────────────────────────────
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
     const path = request.nextUrl.pathname;
-    const isStartupDashboard = path.startsWith("/startup/dashboard");
-    const isTalentDashboard = path.startsWith("/talent/dashboard");
-    const isDashboard = path === "/dashboard";
+    const isStartupDash = path.startsWith(STARTUP_PREFIX);
+    const isTalentDash = path.startsWith(TALENT_PREFIX);
+    const isProtected = isStartupDash || isTalentDash;
 
-    const isAuthRoute = path.startsWith("/auth") ||
-        path === "/login" ||
-        path === "/signup" ||
-        path.includes("/login") || path.includes("/onboarding");
-
-    // 2. Unauthenticated Guard
-    if ((isStartupDashboard || isTalentDashboard || isDashboard) && !isAuthRoute && !user) {
-        // Redirect to login
-        if (isStartupDashboard) {
-            return NextResponse.redirect(new URL("/startup/dashboard/login", request.url));
-        }
-        return NextResponse.redirect(new URL("/auth", request.url));
+    // ── 2. Unauthenticated guard ─────────────────────────────────────────────
+    if (isProtected && !user) {
+        const loginUrl = isStartupDash
+            ? new URL("/startup/dashboard/login", request.url)
+            : new URL("/auth", request.url);
+        loginUrl.searchParams.set("next", path); // preserve intent for post-login redirect
+        return NextResponse.redirect(loginUrl);
     }
 
-    // 3. Authenticated Logic
-    if (user) {
-        // PERFORMANCE FIX: Check Metadata First
-        let role = user.user_metadata?.start_role || user.user_metadata?.role; // Handle potential different namings
+    // ── 3. Redirect authenticated users away from auth pages ────────────────
+    if (user && isAuthPath(path)) {
+        // We don't know their role yet at this point cheaply;
+        // let the onboarding/landing page handle the redirect.
+        // Just prevent them from getting stuck on the login screen.
+        return NextResponse.redirect(new URL("/", request.url));
+    }
 
-        // If no role in metadata, we might need to fetch profile (Fallback)
-        // But to avoid double fetch, we will try to proceed. 
-        // If CRITICAL role check is needed, we rely on the Page to fetch profile if metadata is missing.
-        // However, we can also check if we have the specific "user_type" which seems to be used elsewhere.
-        const userType = user.user_metadata?.user_type; // 'startup' or undefined
+    // ── 4. Role-based access control for protected dashboards ───────────────
+    if (user && isProtected) {
+        // Fast path: role is in JWT user_metadata (set during onboarding)
+        let role: string =
+            user.user_metadata?.role ??
+            user.user_metadata?.start_role ??   // legacy key
+            "";
 
-        // Simple Heuristic Routing
-        // If visiting Startup Dashboard
-        if (isStartupDashboard && !path.includes("/login")) {
-            // Must be startup
-            if (userType !== 'startup' && !isStartupRole(role)) {
-                // If we are UNSURE (no metadata), we might let them through and let the Page block them?
-                // Or we do the DB fetch HERE only if metadata is missing.
-                if (!userType && !role) {
-                    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-                    if (profile) {
-                        role = profile.role;
-                        // Ideally we update metadata here so next time it's fast, but we can't easily in middleware without Supabase Service Key?
-                        // Actually getUser returns a session, we can't update user from middleware easily without service key.
-                    }
-                }
+        const userType: string = user.user_metadata?.user_type ?? ""; // 'startup' | ''
 
-                if (userType !== 'startup' && !isStartupRole(role)) {
-                    // Redirect to Talent
-                    return NextResponse.redirect(new URL("/talent/dashboard", request.url));
-                }
+        // Determine role category from what we already have
+        let knownIsStartup = userType === "startup" || isStartupRole(role);
+        let knownIsTalent = !knownIsStartup && (isTalentRole(role) || (role !== "" && !isStartupRole(role)));
+
+        // Slow path: if metadata has no usable role, do a single DB lookup.
+        // We only do this once per request; Supabase uses the same auth token
+        // so this doesn't add a round-trip beyond what the page itself would do.
+        if (!knownIsStartup && !knownIsTalent) {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .maybeSingle();
+
+            if (profile?.role) {
+                role = profile.role;
+                knownIsStartup = isStartupRole(role);
+                knownIsTalent = isTalentRole(role) || !knownIsStartup;
             }
         }
 
-        // If visiting Talent Dashboard
-        if (isTalentDashboard) {
-            if (userType === 'startup' || isStartupRole(role)) {
-                return NextResponse.redirect(new URL("/startup/dashboard", request.url));
-            }
+        // Skip login sub-routes (e.g. /startup/dashboard/login)
+        const isLoginSubroute = path.includes("/login") || path.includes("/onboarding");
+        if (isLoginSubroute) return response;
+
+        // Enforce: startup user visiting talent dashboard → redirect to startup
+        if (isTalentDash && knownIsStartup) {
+            return NextResponse.redirect(new URL(STARTUP_PREFIX, request.url));
+        }
+
+        // Enforce: talent user visiting startup dashboard → redirect to talent
+        if (isStartupDash && knownIsTalent) {
+            return NextResponse.redirect(new URL(TALENT_PREFIX, request.url));
         }
     }
 
