@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Code2, GitBranch, Terminal, ArrowRight, CheckCircle2, Users, Cpu, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Code2, GitBranch, Terminal, ArrowRight, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ManifestoModal from "./ManifestoModal";
 import ProtocolModal from "./ProtocolModal";
 import LegalModal from "./LegalModal";
-import SmartAuthLink from "./SmartAuthLink";
+import SmartCTAButton from "./SmartCTAButton";
 
 // --- Components ---
 
@@ -42,9 +42,9 @@ function Navbar() {
                     <Link href="/startup" className="hidden md:block px-6 py-2 text-gray-500 text-xs font-bold uppercase tracking-widest hover:text-black transition-colors">
                         For Startups
                     </Link>
-                    <SmartAuthLink role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?view=signup&role=talent" className="px-6 py-2 border border-black text-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                    <SmartCTAButton role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?view=signup&role=talent" className="px-6 py-2 border border-black text-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                         Join as Developer
-                    </SmartAuthLink>
+                    </SmartCTAButton>
                 </div>
             </div>
         </nav>
@@ -72,9 +72,9 @@ function Hero() {
                     </p>
 
                     <div className="flex flex-col md:flex-row gap-4 justify-center mt-8">
-                        <SmartAuthLink role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?view=signup&role=talent" className="h-12 px-8 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center">
+                        <SmartCTAButton role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?view=signup&role=talent" className="h-12 px-8 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center">
                             Join as Developer
-                        </SmartAuthLink>
+                        </SmartCTAButton>
                         <Link href="/startup" className="h-12 px-8 border border-black text-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors flex items-center justify-center">
                             For Startups
                         </Link>
@@ -320,9 +320,9 @@ function ProtocolSteps() {
                                     </div>
                                 </div>
 
-                                <SmartAuthLink role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?role=talent" className="w-full py-4 bg-black text-white font-bold uppercase text-center tracking-widest hover:bg-gray-800 transition-colors shadow-xl rounded hover:-translate-y-1 transform duration-200">
+                                <SmartCTAButton role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?role=talent" className="w-full py-4 bg-black text-white font-bold uppercase text-center tracking-widest hover:bg-gray-800 transition-colors shadow-xl rounded hover:-translate-y-1 transform duration-200">
                                     Start Earning XP
-                                </SmartAuthLink>
+                                </SmartCTAButton>
                             </div>
                         </div>
                     </div>
@@ -429,9 +429,9 @@ function JoinCTA() {
                         The protocol is live. Connect your GitHub, verify your skills, and start earning reputation immediately. No waitlist. No interviews. Just code.
                     </p>
 
-                    <SmartAuthLink role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?role=talent" className="inline-flex items-center gap-2 bg-white text-black font-bold uppercase tracking-widest px-8 py-4 hover:bg-gray-200 transition-colors text-xs rounded">
+                    <SmartCTAButton role="talent" loggedInHref="/talent/dashboard" guestHref="/auth?role=talent" className="inline-flex items-center gap-2 bg-white text-black font-bold uppercase tracking-widest px-8 py-4 hover:bg-gray-200 transition-colors text-xs rounded">
                         Start Onboarding <ArrowRight className="w-4 h-4" />
-                    </SmartAuthLink>
+                    </SmartCTAButton>
 
                     <p className="text-xs text-gray-500 mt-6">* GitHub/GitLab integration available upon access.</p>
                 </FadeIn>
