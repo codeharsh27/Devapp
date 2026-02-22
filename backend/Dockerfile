@@ -45,11 +45,8 @@ USER app
 # Railway assigns $PORT dynamically — expose a default for local dev only
 EXPOSE 8000
 
-# Healthcheck uses $PORT so it matches whatever Railway binds to
-# Note: HEALTHCHECK in Dockerfile is a fallback; Railway uses its own probe via railway.toml
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# CMD is overridden by railway.toml startCommand which uses $PORT
-# This fallback is for local docker run
+# sh -c is required so ${PORT:-8000} is shell-expanded at runtime
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
