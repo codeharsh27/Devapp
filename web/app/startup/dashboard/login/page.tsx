@@ -2,11 +2,11 @@
 
 import { Code2, Github, Chrome, Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function StartupLoginPage() {
+function StartupLoginPageInner() {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
@@ -342,5 +342,17 @@ export default function StartupLoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function StartupLoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin" />
+            </div>
+        }>
+            <StartupLoginPageInner />
+        </Suspense>
     );
 }
