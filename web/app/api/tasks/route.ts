@@ -4,15 +4,35 @@ import { createClient } from "@/lib/supabase/server";
 import { createServerTasksService } from "@/lib/services/server-tasks";
 import { rateLimit } from "@/lib/rate-limit";
 
-const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 500 }); // 60s
+// NOTE: This in-memory limiter works correctly for a single-instance deployment.
+// For multi-instance/serverless (Vercel, etc.) replace with a Redis-backed
+// solution (e.g. @upstash/ratelimit) so limits are shared across all instances.
+const postLimiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 500 });
+const getLimiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 500 });
+
+// Helper: extract client IP from Next.js request headers
+function getClientIp(request: NextRequest): string {
+    return (
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        request.headers.get("x-real-ip") ||
+        "127.0.0.1"
+    );
+}
 
 // POST /api/tasks - Create a new Task (Startup Only)
 export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
-    // Rate Limit Check (IP based) - simplified for MVP
-    // const ip = request.ip || '127.0.0.1';
-    // await limiter.check(10, ip); 
+    // Rate Limit: 10 task-creation requests per minute per IP
+    const ip = getClientIp(request);
+    try {
+        await postLimiter.check(10, ip);
+    } catch {
+        return NextResponse.json(
+            { error: "Rate limit exceeded. Please try again later." },
+            { status: 429 }
+        );
+    }
 
     // 1. Auth Check
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,19 +43,17 @@ export async function POST(request: NextRequest) {
     try {
         const tasksService = await createServerTasksService();
         const body = await request.json();
-        const { title, description, repo_template_url, category, difficulty_level, deadline, max_submissions, criteria } = body;
+        const {
+            title, description, repo_template_url,
+            category, difficulty_level, deadline, max_submissions, criteria
+        } = body;
 
-        // Validation moved to Service or redundant here? 
-        // Service handles role check.
-
-        // 2. Call Service to Create Task
+        // 2. Call Service to Create Task (service handles role check)
         const task = await tasksService.createTask(user.id, {
             title, description, repo_template_url, category, difficulty_level, deadline, max_submissions
         });
 
-        // 3. Insert Criteria (Transaction handling ideal, but sticking to logic)
-        // If Logic for criteria is complex, move to service. 
-        // For now, we keep it here but strictly checked.
+        // 3. Insert Criteria if provided
         if (criteria && Array.isArray(criteria) && criteria.length > 0) {
             const criteriaToInsert = criteria.map((c: any) => ({
                 task_id: task.id,
@@ -51,7 +69,8 @@ export async function POST(request: NextRequest) {
 
             if (criteriaError) {
                 console.error("Error creating criteria:", criteriaError);
-                // Note: Task exists but criteria failed. 
+                // Task exists but criteria failed — log and continue.
+                // Consider wrapping in a DB transaction for atomicity.
             }
         }
 
@@ -59,21 +78,29 @@ export async function POST(request: NextRequest) {
 
     } catch (err: any) {
         console.error("Create Task Error:", err);
-        const status = err.message === 'Unauthorized' ? 403 : 500;
+        const status = err.message === "Unauthorized" ? 403 : 500;
         return NextResponse.json({ error: err.message }, { status });
     }
 }
 
 // GET /api/tasks - List Tasks (Public/Filtered)
 export async function GET(request: NextRequest) {
-    // Rate limit
-    // await limiter.check(20, request.ip || '127.0.0.1');
+    // Rate Limit: 20 reads per minute per IP
+    const ip = getClientIp(request);
+    try {
+        await getLimiter.check(20, ip);
+    } catch {
+        return NextResponse.json(
+            { error: "Rate limit exceeded. Please try again later." },
+            { status: 429 }
+        );
+    }
 
     const tasksService = await createServerTasksService();
     const { searchParams } = new URL(request.url);
 
-    const category = searchParams.get('category') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const category = searchParams.get("category") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "20");
 
     try {
         const tasks = await tasksService.getOpenTasks({ category, limit });

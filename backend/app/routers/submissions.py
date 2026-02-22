@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import asyncio
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from .. import models, schemas, database
 from ..dependencies import get_db, get_current_user
 from ..websockets import manager
@@ -58,7 +58,7 @@ async def mock_evaluate_submission(submission_id: int):
             submission.score = score
             submission.status = status_val
             submission.feedback = feedback
-            submission.completed_at = datetime.utcnow()
+            submission.completed_at = datetime.now(timezone.utc)
 
             drop = None
             # GAMIFICATION UPDATE: Award XP if passed

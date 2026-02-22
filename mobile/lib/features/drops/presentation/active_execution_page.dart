@@ -449,13 +449,19 @@ class _ActiveExecutionPageState extends ConsumerState<ActiveExecutionPage> {
   Future<void> _submit() async {
     final projectUrl = _projectUrlController.text.trim();
     final docUrl = _docUrlController.text.trim();
-    // final imageUrl = _imageUrlController.text.trim();
 
-    if (projectUrl.isEmpty || docUrl.isEmpty || _uploadedImageUrl == null) {
+    // Screenshots are required only for design/link submissions (Figma, etc.).
+    // For code submissions (GitHub URLs), an image is optional.
+    final bool isDesignSubmission = widget.drop.submissionType == 'link';
+    final bool imageRequired = isDesignSubmission && _uploadedImageUrl == null;
+
+    if (projectUrl.isEmpty || docUrl.isEmpty || imageRequired) {
+      final message = imageRequired
+          ? "Please fill all fields and upload a screenshot of your design"
+          : "Please fill in all required fields";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Please fill all fields and upload screenshot",
-              style: GoogleFonts.outfit()),
+          content: Text(message, style: GoogleFonts.outfit()),
           backgroundColor: Colors.redAccent,
         ),
       );

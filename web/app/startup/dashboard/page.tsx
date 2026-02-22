@@ -13,9 +13,10 @@ import { DropDetailView } from "./components/DropDetailView";
 import { ProfileView } from "./components/ProfileView";
 import { RealtimeChat } from "@/components/RealtimeChat";
 import { useStartupTasks } from "@/lib/hooks/useStartupTasks";
+import { SupportView } from "./components/SupportView";
 
 export default function StartupDashboardPage() {
-    const [currentView, setCurrentView] = useState<'overview' | 'drops' | 'talent' | 'messages' | 'profile'>('overview');
+    const [currentView, setCurrentView] = useState<'overview' | 'drops' | 'talent' | 'messages' | 'profile' | 'support'>('overview');
     const [userId, setUserId] = useState<string | undefined>(undefined);
     const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
     const [isAuthorized, setIsAuthorized] = useState(false);
@@ -66,21 +67,18 @@ export default function StartupDashboardPage() {
             return;
         }
 
-        console.log("Opening chat with:", targetUserId);
 
         try {
             // Dynamically import service to avoid hooks rules breaking if used here
             const { createChatService } = await import("@/lib/services/chat");
             const service = await createChatService();
-            console.log("Service created, starting conversation...");
             const conversationId = await service.startConversation(userId, targetUserId);
-            console.log("Conversation started:", conversationId);
 
             setDefaultConversationId(conversationId);
             setCurrentView('messages');
             setSelectedDropId(null); // Close overlay
         } catch (e: any) {
-            console.error("Failed to start chat", e.message, e);
+            console.error("Failed to start chat:", e.message, e);
         }
     };
 

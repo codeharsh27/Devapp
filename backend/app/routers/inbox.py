@@ -8,12 +8,13 @@ Key Features:
 - Messages persist until user explicitly deletes
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc, func, update, delete
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
+import os
 from .. import models, schemas
 from ..dependencies import get_db, get_current_user
 
@@ -173,7 +174,7 @@ async def send_message(
     db.add(new_message)
     
     # Update conversation timestamp
-    conv.updated_at = datetime.utcnow()
+    conv.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(new_message)
@@ -207,13 +208,33 @@ async def delete_conversation(
     return {"message": "Conversation deleted"}
 
 
-# --- ADMIN/RECRUITER ENDPOINTS ---
-# Note: In production, these would be protected by admin auth
+
+# ---------------------------------------------------------------------------
+# Internal admin helper — validates the shared secret so only trusted
+# internal callers (e.g. Next.js API routes) can trigger admin actions.
+# ---------------------------------------------------------------------------
+
+INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
+
+def _verify_admin_secret(x_internal_secret: str = Header("")):
+    """Dependency — raises 403 if the caller cannot prove it is an internal service."""
+    if not INTERNAL_API_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="Server misconfiguration: INTERNAL_API_SECRET is not set."
+        )
+    if x_internal_secret != INTERNAL_API_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: invalid or missing internal secret.",
+        )
+
 
 @router.post("/admin/conversations", response_model=schemas.ConversationDetail)
 async def create_conversation(
     data: schemas.ConversationCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(_verify_admin_secret),
 ):
     """
     Create a new conversation with a user.
@@ -286,7 +307,8 @@ async def create_conversation(
 async def admin_send_message(
     conversation_id: int,
     message: schemas.MessageCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(_verify_admin_secret),
 ):
     """
     Send a message as a recruiter/admin in an existing conversation.
@@ -311,7 +333,7 @@ async def admin_send_message(
     )
     
     db.add(new_message)
-    conv.updated_at = datetime.utcnow()
+    conv.updated_at = datetime.now(timezone.utc)
     conv.is_read = False  # Mark as unread for user
     
     await db.commit()

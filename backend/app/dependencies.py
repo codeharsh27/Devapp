@@ -68,15 +68,18 @@ async def verify_token(token: str, db: AsyncSession):
                  # Force refresh... (omitting verbose duplicate logic for brevity, assuming standard flow works)
                  raise credentials_exception
 
+            # In production all time-based claims MUST be validated.
+            # Only skip in local development to unblock testing with stale tokens.
+            is_dev = settings.ENVIRONMENT == "development"
             payload = jwt.decode(
                 token,
                 rsa_key,
                 algorithms=[header["alg"]],
                 audience="authenticated",
                 options={
-                    "verify_exp": False,  # Skip expiry check entirely
-                    "verify_iat": False,  # Skip issued-at check
-                    "verify_nbf": False,  # Skip not-before check
+                    "verify_exp": not is_dev,  # Enforce in production
+                    "verify_iat": not is_dev,
+                    "verify_nbf": not is_dev,
                 }
             )
             user_id: str = payload.get("sub")
@@ -85,12 +88,21 @@ async def verify_token(token: str, db: AsyncSession):
             if user_id is None:
                  raise credentials_exception
             
-    except (jwt.ExpiredSignatureError, jwt.JWTError) as e:
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTError as e:
         if settings.ENVIRONMENT == "development":
-            print(f"DEBUG: Auth Error (Bypassed in DEV): {e}. NOTE: Update SECRET_KEY in .env to match Supabase JWT Secret!")
+            # In development, allow bypassing signature validation so stale/local
+            # tokens don't block testing. This code path NEVER runs in production.
+            import logging
+            logging.getLogger(__name__).warning(
+                f"DEV AUTH BYPASS: {e}. Ensure SECRET_KEY matches Supabase JWT secret."
+            )
             try:
-                # In development, if verification fails (wrong secret or expired), we blindly trust the token content
-                # purely to unblock local testing.
                 payload = jwt.decode(token, options={"verify_signature": False})
                 user_id = payload.get("sub")
                 email = payload.get("email")
@@ -100,8 +112,7 @@ async def verify_token(token: str, db: AsyncSession):
                 raise credentials_exception
         else:
             raise credentials_exception
-    except Exception as e:
-        print(f"DEBUG: Auth Error: {e}")
+    except Exception:
         raise credentials_exception
     
     # Lazy Sync: Check if user exists in our local DB

@@ -77,39 +77,61 @@ async def get_leaderboard(
     domain: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(models.User))
+    """
+    Return top 50 users sorted by XP.
+    Sorting and limiting happen in the database — no full table scan in Python.
+    """
+    from sqlalchemy import cast, Integer, func as sql_func
+
+    if domain:
+        # Extract the domain XP value from the JSON column via a SQL cast.
+        # Supabase/Postgres: use json_extract_path_text; SQLite: json_extract.
+        # SQLAlchemy's generic JSON subscript operator works on both.
+        domain_lower = domain.lower()
+
+        # Filter out users with no XP for this domain, sort descending.
+        stmt = (
+            select(models.User)
+            .filter(
+                models.User.xp_breakdown[domain_lower].as_integer() > 0
+            )
+            .order_by(
+                models.User.xp_breakdown[domain_lower].as_integer().desc()
+            )
+            .limit(50)
+        )
+    else:
+        stmt = (
+            select(models.User)
+            .filter(models.User.total_xp > 0)
+            .order_by(models.User.total_xp.desc())
+            .limit(50)
+        )
+
+    result = await db.execute(stmt)
     users = result.scalars().all()
-    
+
     entries = []
-    
     for user in users:
-        current_xp = 0
-        current_level = 1
-        
         if domain:
             domain_lower = domain.lower()
             xp_breakdown = user.xp_breakdown or {}
             current_xp = xp_breakdown.get(domain_lower, 0)
-            
-            # Simple level calc for domain (e.g. 500 XP = Lvl 2)
             current_level = int(current_xp / 500) + 1
         else:
             current_xp = user.total_xp or 0
             current_level = user.level or 1
-            
-        if current_xp > 0:
-            entries.append(schemas.LeaderboardEntry(
-                id=user.id,
-                full_name=user.full_name,
-                avatar_url=user.avatar_url,
-                total_xp=current_xp,
-                level=current_level
-            ))
-            
-    # Sort descending
-    entries.sort(key=lambda x: x.total_xp, reverse=True)
-    
-    return entries[:50]
+
+        entries.append(schemas.LeaderboardEntry(
+            id=user.id,
+            full_name=user.full_name,
+            avatar_url=user.avatar_url,
+            total_xp=current_xp,
+            level=current_level
+        ))
+
+    return entries
+
 
 @router.get("/{user_id}", response_model=schemas.User)
 async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):

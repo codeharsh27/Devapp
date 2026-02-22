@@ -1,5 +1,5 @@
-name: mobile
-description: "A new Flutter project."
+name: devapp
+description: "DevApp — The competitive developer platform. Complete real missions, earn XP, and get hired."
 publish_to: 'none'
 version: 1.0.0+1
 

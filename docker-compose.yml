@@ -15,7 +15,7 @@ services:
     networks:
       - devapp_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devapp"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devapp}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,15 +28,43 @@ services:
     networks:
       - devapp_net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # Backend service will be added here once Dockerfile is ready
-  # backend:
-  #   build: ./backend
-  #   ...
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devapp_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Override DATABASE_URL to use the postgres service (not SQLite)
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-devapp}:${POSTGRES_PASSWORD:-devapp_secret}@db:5432/${POSTGRES_DB:-devapp}
+      - SECRET_KEY=${SECRET_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - AUTH_MODE=${AUTH_MODE:-supabase}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-["https://yourdomain.com"]}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - devapp_net
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 networks:
   devapp_net:

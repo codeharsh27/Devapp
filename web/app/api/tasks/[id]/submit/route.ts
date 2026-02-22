@@ -79,10 +79,10 @@ export async function POST(
 
         if (submitError) throw submitError;
 
-        // 6. Trigger Evaluation (MOCKED for MVP)
-        // Ideally: await queue.add('evaluate-submission', { submissionId: submission.id });
-        // For MVP: Log it
-        console.log(`[QUEUE] Triggering evaluation for Submission ${submission.id}`);
+        // 6. Trigger Evaluation
+        // TODO (production): Replace with a proper job queue call:
+        // await queue.add('evaluate-submission', { submissionId: submission.id });
+        // For now, evaluation is triggered separately by an admin or cron job.
 
         return NextResponse.json({ success: true, submission });
 

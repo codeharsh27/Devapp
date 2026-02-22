@@ -3,20 +3,50 @@
 .idea/
 .vscode/
 
+# ============================================================
+# ENVIRONMENT VARIABLES - NEVER COMMIT SECRETS
+# ============================================================
+.env
+.env.*
+*.env
+!*.env.example
+!*.env.sample
+
+# ============================================================
 # Python / FastAPI
+# ============================================================
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 env/
 venv/
-*.env
 *.log
 *.db
 *.sqlite
 *.sqlite3
 
+# Debug / Dev-only scripts (do not ship to prod)
+backend/check_schema.py
+backend/debug_api.py
+backend/debug_drops.py
+backend/inspect_db.py
+backend/test_passlib.py
+
+# ============================================================
+# Next.js / Web
+# ============================================================
+web/.next/
+web/node_modules/
+web/**/*.log
+web/build_log*.txt
+web/lint_log*.txt
+web/lint_output*.txt
+web/lint_results*.txt
+
+# ============================================================
 # Flutter / Dart
+# ============================================================
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -25,3 +55,8 @@ build/
 .pub-cache/
 **/local.properties
 ios/.generated/
+
+# Flutter dev artifacts committed by mistake
+mobile/build_log*.txt
+mobile/analysis.txt
+mobile/analyze_output.txt
