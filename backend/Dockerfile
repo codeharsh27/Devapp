@@ -1,50 +1,52 @@
-# Use official Python image
-FROM python:3.11-slim as builder
+# ============================================================
+# Stage 1 — Build wheels (keeps final image small)
+# ============================================================
+FROM python:3.11-slim AS builder
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Set working directory
-WORKDIR /app
+WORKDIR /build
 
-# Install system dependencies
-# gcc/libpq-dev needed for psycopg2/asyncpg build if wheels not available (but they usually are)
+# System deps needed to compile native extensions (asyncpg, psycopg2-binary)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
-COPY requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+COPY backend/requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
 
-
-# Final Stage
+# ============================================================
+# Stage 2 — Lean runtime image
+# ============================================================
 FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
 
 WORKDIR /app
 
-# Install runtime dependencies (libpq for postgres)
+# Runtime system dependency for asyncpg / psycopg2
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq-dev && \
+    apt-get install -y --no-install-recommends libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy wheels from builder
-COPY --from=builder /app/wheels /wheels
-COPY --from=builder /app/requirements.txt .
-
-# Install dependencies
+# Install pre-built wheels
+COPY --from=builder /build/wheels /wheels
 RUN pip install --no-cache /wheels/*
 
-# Copy application code
-COPY . .
+# Copy ONLY the backend source code (not mobile, web, docs, etc.)
+COPY backend/ .
 
-# Create non-root user
+# Non-root user for security
 RUN addgroup --system app && adduser --system --group app
 USER app
 
-# Expose port
 EXPOSE 8000
 
-# Command to run the application
+# Healthcheck so Railway/Docker knows when the app is ready
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
