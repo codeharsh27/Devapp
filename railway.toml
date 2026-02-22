@@ -4,9 +4,10 @@ dockerfilePath = "backend/Dockerfile"
 buildCommand = ""
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+# Railway injects $PORT dynamically — never hardcode 8000
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 

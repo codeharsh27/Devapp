@@ -22,8 +22,7 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -43,10 +42,14 @@ COPY backend/ .
 RUN addgroup --system app && adduser --system --group app
 USER app
 
+# Railway assigns $PORT dynamically — expose a default for local dev only
 EXPOSE 8000
 
-# Healthcheck so Railway/Docker knows when the app is ready
-HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Healthcheck uses $PORT so it matches whatever Railway binds to
+# Note: HEALTHCHECK in Dockerfile is a fallback; Railway uses its own probe via railway.toml
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD is overridden by railway.toml startCommand which uses $PORT
+# This fallback is for local docker run
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
