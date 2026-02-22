@@ -1,12 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { isStartupRole, isTalentRole } from "@/lib/auth/roles";
+import { isStartupRole } from "@/lib/auth/roles";
 
 // Routes that authenticated users should not be able to re-visit
-const AUTH_PATHS = ["/auth", "/login", "/signup", "/startup/dashboard/login"];
+const AUTH_PATHS = ["/auth", "/login", "/signup"];
 // Protected dashboard paths
 const STARTUP_PREFIX = "/startup/dashboard";
 const TALENT_PREFIX = "/talent/dashboard";
+
+// Sub-routes inside /startup/dashboard that are PUBLIC (login, onboarding, etc.)
+// These must be excluded from the protected-route guard to avoid redirect loops.
+const STARTUP_PUBLIC_SUBROUTES = [
+    "/startup/dashboard/login",
+    "/startup/dashboard/onboarding",
+];
 
 function isAuthPath(path: string): boolean {
     return AUTH_PATHS.some((p) => path === p || path.startsWith(p + "/"));
@@ -65,12 +72,15 @@ export const updateSession = async (request: NextRequest) => {
     const path = request.nextUrl.pathname;
     const isStartupDash = path.startsWith(STARTUP_PREFIX);
     const isTalentDash = path.startsWith(TALENT_PREFIX);
-    const isProtected = isStartupDash || isTalentDash;
-    const isLoginSubroute =
-        path.includes("/login") ||
-        path.includes("/onboarding") ||
-        path.endsWith("/new-drop") ||
-        path.endsWith("/jobs/create");
+
+    // IMPORTANT: login and onboarding sub-routes are PUBLIC even though they
+    // live under /startup/dashboard — exclude them from the protected guard
+    // to prevent ERR_TOO_MANY_REDIRECTS.
+    const isPublicSubroute = STARTUP_PUBLIC_SUBROUTES.some(
+        (p) => path === p || path.startsWith(p + "/")
+    );
+
+    const isProtected = (isStartupDash || isTalentDash) && !isPublicSubroute;
 
     // ── 1. Unauthenticated guard ─────────────────────────────────────────────
     if (isProtected && !user) {
@@ -82,7 +92,8 @@ export const updateSession = async (request: NextRequest) => {
     }
 
     // ── 2. Redirect authenticated users away from auth pages ─────────────────
-    if (user && isAuthPath(path)) {
+    // Also handles /startup/dashboard/login (which is in STARTUP_PUBLIC_SUBROUTES)
+    if (user && (isAuthPath(path) || isPublicSubroute)) {
         // Don't know their role cheaply — resolve it so we send them to the RIGHT dashboard
         const role = await resolveUserRole(supabase, user as any);
         if (role === "startup") {
@@ -91,12 +102,16 @@ export const updateSession = async (request: NextRequest) => {
         if (role === "talent") {
             return NextResponse.redirect(new URL(TALENT_PREFIX, request.url));
         }
-        // Role unknown (onboarding incomplete) — send to main page to figure it out
-        return NextResponse.redirect(new URL("/", request.url));
+        // Role unknown (onboarding incomplete) — only redirect to home from auth pages,
+        // NOT from public subroutes (e.g. /startup/dashboard/login) to avoid loops.
+        if (!isPublicSubroute) {
+            return NextResponse.redirect(new URL("/", request.url));
+        }
+        // Fall through: let the public subroute render (the page itself handles onboarding)
     }
 
     // ── 3. Role-based access control for protected dashboards ────────────────
-    if (user && isProtected && !isLoginSubroute) {
+    if (user && isProtected) {
         const role = await resolveUserRole(supabase, user as any);
 
         // Startup user visiting talent dashboard → redirect to startup
