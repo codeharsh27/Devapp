@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,10 +17,12 @@ const spaceGrotesk = Space_Grotesk({
     weight: ["300", "400", "500"],
 });
 
+type View = "overview" | "explore" | "submissions" | "messages" | "profile";
+
 export default function TalentDashboardPage() {
-    // Navigation State
-    const [currentView, setCurrentView] = useState<'overview' | 'explore' | 'submissions' | 'messages' | 'profile'>('overview');
+    const [currentView, setCurrentView] = useState<View>("overview");
     const [userId, setUserId] = useState<string | undefined>(undefined);
+    const [userName, setUserName] = useState<string | undefined>(undefined);
     const router = useRouter();
 
     useEffect(() => {
@@ -35,16 +36,24 @@ export default function TalentDashboardPage() {
             }
             setUserId(user.id);
 
-            // Check if user is startup
-            const profile = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role, full_name")
+                .eq("id", user.id)
                 .single();
 
-            if (profile.data && isStartupRole(profile.data.role)) {
-                router.push("/dashboard/startup");
+            if (profile && isStartupRole(profile.role)) {
+                router.push("/startup/dashboard");
+                return;
             }
+
+            // Derive display name: profile name > email prefix > fallback
+            const name =
+                profile?.full_name ||
+                user.user_metadata?.full_name ||
+                user.email?.split("@")[0] ||
+                "Developer";
+            setUserName(name);
         };
 
         checkUser();
@@ -56,28 +65,29 @@ export default function TalentDashboardPage() {
             {/* Sidebar */}
             <TalentSidebar currentView={currentView} setCurrentView={setCurrentView} />
 
-            {/* Main Content Area */}
+            {/* Main */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0c0c0e] relative">
-
-                {/* Dashboard Content */}
-                <div key={currentView} className={currentView === 'messages' ? "flex-1 h-full flex flex-col animate-in fade-in duration-300" : "p-8 pb-32 max-w-7xl mx-auto h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500"}>
-                    {currentView === 'overview' && (
-                        <TalentOverview setView={setCurrentView} userId={userId} />
+                <div
+                    key={currentView}
+                    className={
+                        currentView === "messages"
+                            ? "flex-1 h-full flex flex-col animate-in fade-in duration-300"
+                            : "p-8 pb-32 max-w-7xl mx-auto h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500"
+                    }
+                >
+                    {currentView === "overview" && (
+                        <TalentOverview setView={setCurrentView} userId={userId} userName={userName} />
                     )}
-
-                    {currentView === 'explore' && (
-                        <ExploreDropsView userId={userId} />
+                    {currentView === "explore" && (
+                        <ExploreDropsView userId={userId} setView={setCurrentView} />
                     )}
-
-                    {currentView === 'submissions' && (
+                    {currentView === "submissions" && (
                         <SubmissionsView userId={userId} />
                     )}
-
-                    {currentView === 'messages' && (
+                    {currentView === "messages" && (
                         <RealtimeChat userId={userId} />
                     )}
-
-                    {currentView === 'profile' && (
+                    {currentView === "profile" && (
                         <ProfileView userId={userId} />
                     )}
                 </div>

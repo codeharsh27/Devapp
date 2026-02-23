@@ -21,6 +21,7 @@ export async function createSubmissionsService() {
                 .insert({
                     developer_id: developerId,
                     task_id: taskId,
+                    repo_url: '',          // satisfies NOT NULL; filled later when submitting work
                     status: 'enrolled'
                 })
                 .select()
