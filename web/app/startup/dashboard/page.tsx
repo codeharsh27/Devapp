@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StartupSidebar } from "./components/StartupSidebar";
 import { STARTUP_ROLES } from "@/lib/auth/roles";
 import { OverviewView } from "./components/OverviewView";
-import { DropsView } from "./components/DropsView";
+import { PastDropsView } from "./components/PastDropsView";
 import { TalentView } from "./components/TalentView";
 import { DropDetailView } from "./components/DropDetailView";
 import { ProfileView } from "./components/ProfileView";
@@ -107,11 +107,7 @@ export default function StartupDashboardPage() {
                     )}
 
                     {currentView === 'drops' && (
-                        <DropsView
-                            tasks={tasks} // Pass lifted state
-                            loading={loading}
-                            onOpenDrop={openDrop}
-                        />
+                        <PastDropsView />
                     )}
 
                     {currentView === 'talent' && (

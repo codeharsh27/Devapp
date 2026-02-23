@@ -31,7 +31,7 @@ export async function enrollMission(taskId: string) {
 
         if (existing) {
             console.log("[enrollMission] Already enrolled:", existing);
-            return { data: existing };
+            return { data: JSON.parse(JSON.stringify(existing)) };
         }
 
         console.log("[enrollMission] Creating new submission...");
@@ -66,7 +66,7 @@ export async function enrollMission(taskId: string) {
         }
 
         console.log("[enrollMission] Success:", data);
-        return { data };
+        return { data: JSON.parse(JSON.stringify(data)) };
 
     } catch (e: any) {
         console.error("[enrollMission] Unexpected error:", e);

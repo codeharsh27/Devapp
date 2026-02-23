@@ -60,3 +60,4 @@ ios/.generated/
 mobile/build_log*.txt
 mobile/analysis.txt
 mobile/analyze_output.txt
+.vercel
