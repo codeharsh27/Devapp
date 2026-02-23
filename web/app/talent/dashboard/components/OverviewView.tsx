@@ -1,11 +1,25 @@
 "use client";
 
 import { useTalentStats } from "@/lib/hooks/useTalentStats";
-import { Zap, Briefcase, Clock, ArrowUpRight, Terminal, Sparkles } from "lucide-react";
+import { Zap, Briefcase, Clock, ArrowUpRight, Terminal, Sparkles, Rocket, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Space_Grotesk } from "next/font/google";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "400", "500"] });
+
+const MOTIVATIONAL_MESSAGES = [
+    { text: "Every code contribution brings a startup closer to their dream.", icon: Rocket },
+    { text: "Your skills can help founders turn ideas into reality.", icon: TrendingUp },
+    { text: "Build real-world experience while supporting innovation.", icon: Users },
+    { text: "Startups need developers like you. Start contributing today!", icon: Sparkles },
+    { text: "Your code makes an impact. See your work live in production.", icon: Zap },
+];
+
+function getMotivationalMessage(): { text: string; icon: React.ElementType } {
+    const hour = new Date().getHours();
+    const index = (hour + Math.floor(Math.random() * 5)) % MOTIVATIONAL_MESSAGES.length;
+    return MOTIVATIONAL_MESSAGES[index];
+}
 
 type View = "overview" | "explore" | "submissions" | "messages" | "profile";
 
@@ -63,6 +77,8 @@ export function TalentOverview({
             hour < 17 ? "Good afternoon" :
                 "Good evening";
 
+    const motivational = getMotivationalMessage();
+
     return (
         <div className="space-y-10 animate-in fade-in duration-700">
 
@@ -112,6 +128,24 @@ export function TalentOverview({
                         Find Missions
                         <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </button>
+                </div>
+            </div>
+
+            {/* ── Motivational Banner ── */}
+            <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-indigo-500/5 p-5">
+                <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative z-10 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                        <motivational.icon className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                        <p className="text-indigo-300 text-sm font-medium">
+                            {motivational.text}
+                        </p>
+                        <p className="text-zinc-500 text-xs mt-1">
+                            Join developers building the next generation of startups.
+                        </p>
+                    </div>
                 </div>
             </div>
 

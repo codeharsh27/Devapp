@@ -5,72 +5,112 @@ export async function createSubmissionsService() {
     const supabase = createClient();
 
     return {
-        async enroll(developerId: string, taskId: string) {
+        async enroll(userId: string, taskId: string) {
             // Check if already enrolled
             const { data: existing } = await supabase
-                .from('submissions')
-                .select('id')
-                .eq('developer_id', developerId)
-                .eq('task_id', taskId)
+                .from("submissions")
+                .select("*")
+                .eq("developer_id", userId)
+                .eq("task_id", taskId)
                 .maybeSingle();
 
-            if (existing) return existing;
+            if (existing) {
+                return existing;
+            }
 
+            // Create new enrollment
             const { data, error } = await supabase
-                .from('submissions')
+                .from("submissions")
                 .insert({
-                    developer_id: developerId,
+                    developer_id: userId,
                     task_id: taskId,
-                    repo_url: '',          // satisfies NOT NULL; filled later when submitting work
-                    status: 'enrolled'
+                    status: "enrolled",
                 })
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                // Handle specific error cases with user-friendly messages
+                const errorMsg = error.message || "";
+                const errorCode = error.code || "";
+                
+                // Check constraint violation (PostgreSQL code 23514)
+                if (errorCode === "23514" || errorMsg.includes("check constraint") || errorMsg.includes("submissions_status_check")) {
+                    throw new Error("Unable to start mission. The mission may no longer be available. Please try refreshing.");
+                }
+                // RLS violation
+                if (errorMsg.includes("row-level security") || errorMsg.includes("RLS")) {
+                    throw new Error("You must be logged in to start a mission.");
+                }
+                // Duplicate entry
+                if (errorCode === "23505" || errorMsg.includes("duplicate")) {
+                    throw new Error("You're already enrolled in this mission!");
+                }
+                throw new Error(errorMsg || "Failed to start mission. Please try again.");
+            }
+
             return data;
         },
 
-        async submitWork(submissionId: string, data: { repo_url: string, notes?: string }) {
-            const { error } = await supabase
-                .from('submissions')
+        async submitWork(submissionId: string, submissionData: {
+            repo_url?: string;
+            demo_url?: string;
+            notes?: string;
+        }) {
+            const { data, error } = await supabase
+                .from("submissions")
                 .update({
-                    repo_url: data.repo_url,
-                    notes: data.notes,
-                    status: 'pending' // Move to pending for evaluation
+                    repo_url: submissionData.repo_url,
+                    demo_url: submissionData.demo_url,
+                    notes: submissionData.notes,
+                    status: "pending",
                 })
-                .eq('id', submissionId);
+                .eq("id", submissionId)
+                .select()
+                .single();
 
-            if (error) throw error;
-        },
+            if (error) {
+                if (error.message.includes("submissions_status_check")) {
+                    throw new Error("Unable to submit work. Please try again.");
+                }
+                throw new Error(error.message || "Failed to submit work. Please try again.");
+            }
 
-        async getTalentSubmissions(developerId: string) {
-            const { data, error } = await supabase
-                .from('submissions')
-                .select(`
-            *,
-            task:tasks(id, title, status, startup:profiles(full_name))
-          `)
-                .eq('developer_id', developerId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
             return data;
         },
 
-        async getTaskSubmissions(taskId: string) {
+        async getSubmissions(userId: string) {
             const { data, error } = await supabase
-                .from('submissions')
+                .from("submissions")
                 .select(`
-             *,
-             developer:profiles(full_name, avatar_url, email)
-           `)
-                .eq('task_id', taskId)
-                .neq('status', 'enrolled') // Only show actual submissions? Or enrolled too? Maybe both.
-                .order('created_at', { ascending: false });
+                    *,
+                    task:tasks(*)
+                `)
+                .eq("developer_id", userId)
+                .order("created_at", { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                throw new Error(error.message || "Failed to load submissions.");
+            }
+
             return data;
-        }
+        },
+
+        async getSubmissionById(submissionId: string) {
+            const { data, error } = await supabase
+                .from("submissions")
+                .select(`
+                    *,
+                    task:tasks(*)
+                `)
+                .eq("id", submissionId)
+                .single();
+
+            if (error) {
+                throw new Error(error.message || "Failed to load submission.");
+            }
+
+            return data;
+        },
     };
 }
