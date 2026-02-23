@@ -6,18 +6,26 @@ export async function createSubmissionsService() {
 
     return {
         async enroll(userId: string, taskId: string) {
+            console.log("[enroll] Starting with userId:", userId, "taskId:", taskId);
+            
             // Check if already enrolled
-            const { data: existing } = await supabase
+            const { data: existing, error: checkError } = await supabase
                 .from("submissions")
                 .select("*")
                 .eq("developer_id", userId)
                 .eq("task_id", taskId)
                 .maybeSingle();
+            
+            if (checkError) {
+                console.error("[enroll] Check error:", checkError);
+            }
 
             if (existing) {
+                console.log("[enroll] Already enrolled:", existing);
                 return existing;
             }
 
+            console.log("[enroll] Creating new submission...");
             // Create new enrollment
             const { data, error } = await supabase
                 .from("submissions")
@@ -30,6 +38,7 @@ export async function createSubmissionsService() {
                 .single();
 
             if (error) {
+                console.error("[enroll] Insert error:", error);
                 // Handle specific error cases with user-friendly messages
                 const errorMsg = error.message || "";
                 const errorCode = error.code || "";
@@ -49,6 +58,7 @@ export async function createSubmissionsService() {
                 throw new Error(errorMsg || "Failed to start mission. Please try again.");
             }
 
+            console.log("[enroll] Success:", data);
             return data;
         },
 

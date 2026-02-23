@@ -37,10 +37,14 @@ function MissionDrawer({
     }, [drop?.id]);
 
     const handleStart = async () => {
-        if (!userId || !drop) return;
+        if (!userId || !drop) {
+            setError("Please log in to start a mission.");
+            return;
+        }
         setIsStarting(true);
         setError(null);
         try {
+            console.log("[handleStart] Starting mission:", { userId, taskId: drop.id });
             const service = await createSubmissionsService();
             const result = await service.enroll(userId, drop.id);
             // If already enrolled, enroll() returns the existing row
@@ -50,7 +54,7 @@ function MissionDrawer({
             }
             setEnrolled(true);
         } catch (e: any) {
-            console.error("[enroll]", e);
+            console.error("[enroll error]", e);
             setError(e.message ?? "Failed to start mission. Please try again.");
         } finally {
             setIsStarting(false);
