@@ -2,11 +2,13 @@
 "use client";
 import { useTalentSubmissions } from "@/lib/hooks/useTalentSubmissions";
 import { PageLoader } from "@/components/ui/PageLoader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { createSubmissionsService } from "@/lib/services/submissions";
 import { ExternalLink, Terminal, Loader2, Send, CheckCircle2, Share2, AlertTriangle, XCircle } from "lucide-react";
 import { ShareSuccessCard } from "@/components/ShareSuccessCard";
 import { createClient } from "@/lib/supabase/client";
+import { submitWorkAction } from "@/app/actions/missions";
+import { toast } from "sonner";
 
 export function SubmissionsView({ userId }: { userId: string | undefined }) {
     const { submissions, loading, refetch } = useTalentSubmissions(userId);
@@ -19,7 +21,7 @@ export function SubmissionsView({ userId }: { userId: string | undefined }) {
     // Edit State
     const [repoUrl, setRepoUrl] = useState("");
     const [notes, setNotes] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, startTransition] = useTransition();
     const [showShare, setShowShare] = useState(false);
 
     const openSubmission = (sub: any) => {
@@ -46,23 +48,19 @@ export function SubmissionsView({ userId }: { userId: string | undefined }) {
         setLoadingLogs(false);
     };
 
-    const submitWork = async () => {
+    const submitWork = () => {
         if (!selectedSubmission || !userId) return;
-        setIsSubmitting(true);
-        try {
-            const service = await createSubmissionsService();
-            await service.submitWork(selectedSubmission.id, { repo_url: repoUrl, notes });
-            // alert("Submission Updated!"); // Removed alert for better UX
 
-            // Refresh list and local state
-            await refetch();
-            setSelectedSubmission((prev: any) => ({ ...prev, status: 'processing', repo_url: repoUrl, notes }));
-        } catch (e: any) {
-            console.error(e);
-            alert("Error: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
+        startTransition(async () => {
+            const result = await submitWorkAction(selectedSubmission.id, { repo_url: repoUrl, notes });
+            if (result.error) {
+                toast.error(result.error);
+            } else {
+                toast.success("Successfully submitted work!");
+                await refetch();
+                setSelectedSubmission((prev: any) => ({ ...prev, status: 'pending', repo_url: repoUrl, notes }));
+            }
+        });
     };
 
     if (loading) return <PageLoader />;

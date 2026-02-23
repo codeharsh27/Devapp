@@ -21,7 +21,7 @@ interface Submission {
     status: string;
     developer: Profile;
     final_score?: number;
-    github_url?: string;
+    repo_url?: string;
     live_url?: string;
 }
 
@@ -129,8 +129,8 @@ function MissionDrawer({ drop, onClose, onRefresh }: { drop: Drop | null, onClos
                                         {sub.final_score && (
                                             <div className="text-emerald-400 font-mono font-bold">{sub.final_score}/100</div>
                                         )}
-                                        {sub.github_url && (
-                                            <a href={sub.github_url} target="_blank" rel="noreferrer" className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                                        {sub.repo_url && (
+                                            <a href={sub.repo_url} target="_blank" rel="noreferrer" className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
                                                 <Github className="w-4 h-4" />
                                             </a>
                                         )}
@@ -185,7 +185,7 @@ export function PastDropsView() {
                     id,
                     status,
                     final_score,
-                    github_url,
+                    repo_url,
                     developer_id,
                     developer:profiles!submissions_developer_id_fkey(id, full_name, avatar_url)
                 )

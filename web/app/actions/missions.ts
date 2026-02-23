@@ -43,6 +43,7 @@ export async function enrollMission(taskId: string) {
                 developer_id: userId,
                 task_id: taskId,
                 status: "enrolled",
+                repo_url: "", // Bypass older local DB NOT NULL constraints
             })
             .select()
             .single();
@@ -70,6 +71,42 @@ export async function enrollMission(taskId: string) {
 
     } catch (e: any) {
         console.error("[enrollMission] Unexpected error:", e);
+        return { error: e.message || "An unexpected error occurred." };
+    }
+}
+
+export async function submitWorkAction(submissionId: string, submissionData: { repo_url: string; notes: string }) {
+    try {
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { error: "Authentication failed. Please log in." };
+        }
+
+        const { data, error } = await supabase
+            .from("submissions")
+            .update({
+                repo_url: submissionData.repo_url,
+                notes: submissionData.notes,
+                status: "pending",
+            })
+            .eq("id", submissionId)
+            .eq("developer_id", user.id) // Secure update
+            .select()
+            .single();
+
+        if (error) {
+            console.error("[submitWorkAction] error:", error);
+            if (error.message.includes("submissions_status_check")) {
+                return { error: "Unable to submit work. Invalid status." };
+            }
+            return { error: error.message || "Failed to submit work." };
+        }
+
+        return { data: JSON.parse(JSON.stringify(data)) };
+    } catch (e: any) {
+        console.error("[submitWorkAction] Unexpected:", e);
         return { error: e.message || "An unexpected error occurred." };
     }
 }
