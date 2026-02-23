@@ -2,10 +2,11 @@
 
 import { CheckCircle2, AlertCircle, ArrowUpRight, X, PlayCircle, Search, Loader2, Award } from "lucide-react";
 import { Space_Grotesk } from "next/font/google";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useExploreDrops } from "@/lib/hooks/useExploreDrops";
-import { createSubmissionsService } from "@/lib/services/submissions";
+import { enrollMission } from "@/app/actions/missions";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { toast } from "sonner";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "400", "500"] });
 
@@ -33,29 +34,33 @@ function MissionDrawer({
         setIsStarting(false);
         setEnrolled(false);
         setAlreadyIn(false);
-        setError(null);
     }, [drop?.id]);
 
     const handleStart = async () => {
         if (!userId || !drop) {
-            setError("Please log in to start a mission.");
+            toast.error("Please log in to start a mission.");
             return;
         }
         setIsStarting(true);
-        setError(null);
         try {
             console.log("[handleStart] Starting mission:", { userId, taskId: drop.id });
-            const service = await createSubmissionsService();
-            const result = await service.enroll(userId, drop.id);
-            // If already enrolled, enroll() returns the existing row
-            if (result && result.created_at) {
-                // Check if it was already there before this call by seeing if we got back id without new insert
-                setAlreadyIn(result.status === 'enrolled');
+
+            const result = await enrollMission(drop.id);
+
+            if (result.error) {
+                toast.error(result.error);
+                return;
             }
+
+            const data = result.data;
+            if (data && data.created_at) {
+                setAlreadyIn(data.status === 'enrolled');
+            }
+            toast.success("Enrolled successfully! Ready to hack.");
             setEnrolled(true);
         } catch (e: any) {
             console.error("[enroll error]", e);
-            setError(e.message ?? "Failed to start mission. Please try again.");
+            toast.error(e.message ?? "Failed to start mission. Please try again.");
         } finally {
             setIsStarting(false);
         }
@@ -293,8 +298,8 @@ export function ExploreDropsView({
                             key={drop.id}
                             onClick={() => setSelectedDrop(drop)}
                             className={`group relative p-6 rounded-2xl bg-[#111113] border transition-all cursor-pointer overflow-hidden ${isPromoted
-                                    ? "border-amber-500/30 hover:border-amber-500/60 shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-amber-500/10"
-                                    : "border-zinc-800/60 hover:border-zinc-600/60"
+                                ? "border-amber-500/30 hover:border-amber-500/60 shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-amber-500/10"
+                                : "border-zinc-800/60 hover:border-zinc-600/60"
                                 }`}
                         >
                             {isPromoted && (

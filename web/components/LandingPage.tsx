@@ -53,7 +53,7 @@ function Navbar() {
 
 function Hero() {
     return (
-        <section className="min-h-screen pt-52 flex flex-col justify-start overflow-hidden relative bg-[#F5F5F7]">
+        <section className="min-h-screen pt-42 flex flex-col justify-start overflow-hidden relative bg-[#F5F5F7]">
             <div className="flex-none flex flex-col items-center text-center w-full mb-12 max-w-[1400px] mx-auto px-6 z-10 relative">
                 <FadeIn>
                     <div className="flex items-center justify-center gap-2 mb-6">
@@ -64,11 +64,11 @@ function Hero() {
 
                     <h1 className="text-5xl md:text-8xl font-bold tracking-tighter text-black mb-6 leading-[0.9]">
                         REAL WORK.<br />
-                        REAL MONEY.<br />
-                        GET VERIFIED.
+                        GET VERIFIED.<br />
+                        GET DISCOVERED.
                     </h1>
                     <p className="text-lg text-gray-600 max-w-xl mx-auto leading-relaxed mb-8">
-                        Stop leetcoding. Start shipping. Merge real engineering tickets from top startups. Get paid instantly and build an on-chain reputation that proves your seniority.
+                        Stop leetcoding. Start shipping. Merge real engineering tickets from top startups and prove your skills on-chain.
                     </p>
 
                     <div className="flex flex-col md:flex-row gap-4 justify-center mt-8">
@@ -251,6 +251,42 @@ function MissionBoard() {
 
 // REMOVED ProtocolPhilosophy Function
 
+
+function ProblemSection() {
+    return (
+        <section className="py-20 bg-white">
+            <div className="max-w-3xl mx-auto px-6 text-center">
+                <FadeIn>
+                    <h2 className="text-2xl md:text-3xl font-light text-black mb-8">
+                        You build projects.
+                        <br />
+                        Startups build products.
+                    </h2>
+                    
+                    <div className="relative py-8">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-px h-full bg-gray-200"></div>
+                        </div>
+                        
+                        <div className="relative flex justify-center">
+                            <div className="bg-white px-4">
+                                <div className="text-sm text-gray-500 uppercase tracking-wider">
+                                    The Gap
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p className="text-lg text-gray-600 font-light leading-relaxed">
+                        Your portfolio shows what you've learned.
+                        <br />
+                        Startups need to see what you can ship.
+                    </p>
+                </FadeIn>
+            </div>
+        </section>
+    );
+}
 
 function ProtocolSteps() {
     return (
@@ -475,8 +511,8 @@ export default function LandingPage() {
         <div className="min-h-screen bg-[#F5F5F7] text-black font-sans selection:bg-black selection:text-white overflow-x-hidden">
             <Navbar />
             <Hero />
+            <ProblemSection />
             <ProtocolSteps />
-            <MissionBoard />
             <MissionBoard />
             <FAQ />
             <JoinCTA />

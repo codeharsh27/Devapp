@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Stop hiring resumes. Start hiring execution. The first proof-of-work hiring platform.",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +34,7 @@ export default function RootLayout({
           <GlobalLoader />
         </Suspense>
         {children}
+        <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>
   );

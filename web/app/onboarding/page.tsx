@@ -12,7 +12,7 @@ type ProfileData = {
     bio: string;
     role: string;
     years_experience: number;
-    tech_stack: string[];
+    skills: string[];
     github_url: string;
     linkedin_url: string;
     portfolio_url: string;
@@ -44,7 +44,7 @@ export default function OnboardingPage() {
         bio: "",
         role: "",
         years_experience: 0,
-        tech_stack: [],
+        skills: [],
         github_url: "",
         linkedin_url: "",
         portfolio_url: "",
@@ -126,16 +126,16 @@ export default function OnboardingPage() {
 
     const toggleTechStack = (tech: string) => {
         setFormData(prev => {
-            const stack = prev.tech_stack.includes(tech)
-                ? prev.tech_stack.filter(t => t !== tech)
-                : [...prev.tech_stack, tech];
-            return { ...prev, tech_stack: stack };
+            const stack = prev.skills.includes(tech)
+                ? prev.skills.filter(t => t !== tech)
+                : [...prev.skills, tech];
+            return { ...prev, skills: stack };
         });
         setTechInput(""); // Clear input after selection
     };
 
     const filteredTechOptions = TECH_STACK_OPTIONS.filter(
-        t => t.toLowerCase().includes(techInput.toLowerCase()) && !formData.tech_stack.includes(t)
+        t => t.toLowerCase().includes(techInput.toLowerCase()) && !formData.skills.includes(t)
     );
 
     return (
@@ -302,7 +302,7 @@ export default function OnboardingPage() {
                                         <div className="space-y-3">
                                             {/* Selected Tags */}
                                             <div className="flex flex-wrap gap-2 min-h-[32px]">
-                                                {formData.tech_stack.map(tech => (
+                                                {formData.skills.map(tech => (
                                                     <button
                                                         key={tech}
                                                         onClick={() => toggleTechStack(tech)}
@@ -323,7 +323,7 @@ export default function OnboardingPage() {
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
-                                                            if (techInput.trim() && !formData.tech_stack.includes(techInput.trim())) {
+                                                            if (techInput.trim() && !formData.skills.includes(techInput.trim())) {
                                                                 toggleTechStack(techInput.trim());
                                                             }
                                                         }
