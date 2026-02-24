@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
 from .. import models, schemas
-from ..dependencies import get_db, get_current_user
+from app.core.dependencies import get_db, get_current_user
 
 router = APIRouter(
     prefix="/experiences",
@@ -18,15 +18,14 @@ async def get_my_experiences(
 ):
     """
     Get 'Contributions' - automatically generated from completed submissions.
-    Filters for Open Source, Gig, or Recruiter tasks (simulated by filtering for COMPLETED status for now).
+    Filters for Open Source, Gig, or Recruiter tasks (simulated by filtering for EVALUATED status for now).
     """
-    # Fetch completed submissions with Drop details
     stmt = (
         select(models.Submission)
-        .join(models.Drop)
+        .join(models.Task)
         .filter(
-            models.Submission.user_id == current_user.id,
-            models.Submission.status == models.SubmissionStatus.COMPLETED
+            models.Submission.developer_id == current_user.id,
+            models.Submission.status == models.SubmissionStatus.EVALUATED
         )
         .order_by(models.Submission.completed_at.desc())
     )
@@ -35,11 +34,8 @@ async def get_my_experiences(
 
     experiences = []
     for sub in submissions:
-        # Map Submission + Drop -> Experience
-        # Determine strict type based on domain or title keywords for now
-        # In a real app, Drop would have a specific 'type' field for 'gig'/'opensource'
         exp_type = "project"
-        title_lower = sub.drop.title.lower() if sub.drop else "unknown"
+        title_lower = sub.task.title.lower() if sub.task else "unknown"
         if "gig" in title_lower:
             exp_type = "gig"
         elif "open source" in title_lower or "contribution" in title_lower:
@@ -47,28 +43,27 @@ async def get_my_experiences(
         elif "hackathon" in title_lower:
             exp_type = "hackathon"
         
-        # Tech stack from domain 
-        tech_stack = [sub.drop.domain] if sub.drop and sub.drop.domain else []
+        tech_stack = [sub.task.category] if sub.task and sub.task.category else []
         
         exp = schemas.Experience(
-            id=sub.id, # Use submission ID as experience ID
-            user_id=sub.user_id,
-            title=sub.drop.title if sub.drop else "Unknown Drop",
-            role="Contributor", # Default role
+            id=sub.id,
+            user_id=sub.developer_id,
+            title=sub.task.title if sub.task else "Unknown Task",
+            role="Contributor",
             experience_type=exp_type,
-            description=sub.drop.description if sub.drop else "", # Use drop description
-            contributions=[f"Completed {sub.drop.title if sub.drop else 'Task'}", f"Score: {sub.score or 'N/A'}"],
+            description=sub.task.description if sub.task else "",
+            contributions=[f"Completed {sub.task.title if sub.task else 'Task'}", f"Score: {sub.final_score or 'N/A'}"],
             tech_stack=tech_stack,
-            project_url=sub.submission_url,
-            image_url=sub.image_url,
-            start_date=sub.submitted_at, 
+            project_url=sub.repo_url,
+            image_url=sub.demo_url,
+            start_date=sub.created_at, 
             end_date=sub.completed_at,
             is_current=False,
-            is_verified=True, # App verified completion
-            is_featured=False, # Could be dynamic based on score?
+            is_verified=True,
+            is_featured=False, 
             display_order=0,
-            created_at=sub.submitted_at,
-            updated_at=sub.completed_at or sub.submitted_at
+            created_at=sub.created_at,
+            updated_at=sub.completed_at or sub.created_at
         )
         experiences.append(exp)
 
@@ -83,15 +78,13 @@ async def get_featured_experiences(
 ):
     """
     Get top 'Contributions' for profile display - automatically generated from completed submissions.
-    Returns the most recent highly-rated or completed tasks.
     """
-    # Fetch recent completed submissions
     stmt = (
         select(models.Submission)
-        .join(models.Drop)
+        .join(models.Task)
         .filter(
-            models.Submission.user_id == current_user.id,
-            models.Submission.status == models.SubmissionStatus.COMPLETED
+            models.Submission.developer_id == current_user.id,
+            models.Submission.status == models.SubmissionStatus.EVALUATED
         )
         .order_by(models.Submission.completed_at.desc())
         .limit(limit)
@@ -101,9 +94,8 @@ async def get_featured_experiences(
 
     experiences = []
     for sub in submissions:
-        # Map Submission + Drop -> ExperienceSummary
         exp_type = "project"
-        title_lower = sub.drop.title.lower() if sub.drop else "unknown"
+        title_lower = sub.task.title.lower() if sub.task else "unknown"
         if "gig" in title_lower:
             exp_type = "gig"
         elif "open source" in title_lower or "contribution" in title_lower:
@@ -111,19 +103,18 @@ async def get_featured_experiences(
         elif "hackathon" in title_lower:
             exp_type = "hackathon"
         
-        tech_stack = [sub.drop.domain] if sub.drop and sub.drop.domain else []
+        tech_stack = [sub.task.category] if sub.task and sub.task.category else []
         
-        # Summary schema
         role_str = sub.completed_at.strftime("%b %Y") if sub.completed_at else "In Progress"
         
         exp = schemas.ExperienceSummary(
             id=sub.id,
-            title=sub.drop.title if sub.drop else "Unknown",
+            title=sub.task.title if sub.task else "Unknown",
             role=role_str,
             experience_type=exp_type,
             tech_stack=tech_stack,
-            project_url=sub.submission_url,
-            image_url=sub.image_url,
+            project_url=sub.repo_url,
+            image_url=sub.demo_url,
             is_current=False, 
             is_verified=True
         )
@@ -134,7 +125,7 @@ async def get_featured_experiences(
 
 @router.get("/{experience_id}", response_model=schemas.Experience)
 async def get_experience(
-    experience_id: int,
+    experience_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -187,7 +178,7 @@ async def create_experience(
 
 @router.put("/{experience_id}", response_model=schemas.Experience)
 async def update_experience(
-    experience_id: int,
+    experience_id: str,
     experience: schemas.ExperienceUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -220,7 +211,7 @@ async def update_experience(
 
 @router.delete("/{experience_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_experience(
-    experience_id: int,
+    experience_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -246,7 +237,7 @@ async def delete_experience(
 
 @router.post("/{experience_id}/toggle-featured", response_model=schemas.Experience)
 async def toggle_featured(
-    experience_id: int,
+    experience_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):

@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
+    SUPABASE_JWT_SECRET: str = ""
     AUTH_MODE: str = "local"
     SENTRY_DSN: str = ""
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]

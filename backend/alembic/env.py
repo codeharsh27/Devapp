@@ -10,7 +10,7 @@ import sys
 # Add the project root to the python path to allow imports from app
 sys.path.append(os.getcwd())
 
-from app.database import SQLALCHEMY_DATABASE_URL
+from app.core.database import SQLALCHEMY_DATABASE_URL
 from app.models import Base
 
 # this is the Alembic Config object, which provides
@@ -73,13 +73,10 @@ def run_migrations_online() -> None:
 
     if connectable is None:
         # standard ALembic + Async Engine mode
-        connectable = AsyncEngine(
-            engine_from_config(
-                config.get_section(config.config_ini_section, {}),
-                prefix="sqlalchemy.",
-                poolclass=pool.NullPool,
-                future=True,
-            )
+        from sqlalchemy.ext.asyncio import create_async_engine
+        connectable = create_async_engine(
+            config.get_main_option("sqlalchemy.url"),
+            poolclass=pool.NullPool,
         )
 
     if isinstance(connectable, AsyncEngine):

@@ -5,9 +5,15 @@ import os
 # Fallback to SQLite if Postgres credentials fail or simpler local dev is needed
 # SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://user:password@postgresserver/db"
 
-from .config import settings
+from app.core.config import settings
 
-SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://").replace("sqlite:///","sqlite+aiosqlite:///")
+url = settings.DATABASE_URL
+if url.startswith("postgresql://"):
+    url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif url.startswith("sqlite:///"):
+    url = url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
+
+SQLALCHEMY_DATABASE_URL = url
 
 # connect_args={"check_same_thread": False} is needed only for SQLite
 connect_args = {"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}

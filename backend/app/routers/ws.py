@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, WebSocket, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..websockets import manager
-from ..dependencies import get_db, verify_token
+from app.core.dependencies import get_db, verify_token
 from fastapi import Depends
 
 logger = logging.getLogger(__name__)

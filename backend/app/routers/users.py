@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from .. import models, schemas
-from ..dependencies import get_db, get_current_user
+from app.core.dependencies import get_db, get_current_user
+import uuid
 
 router = APIRouter(
     prefix="/users",
@@ -16,12 +17,12 @@ async def get_global_activity(db: AsyncSession = Depends(get_db)):
     """
     Get the last 10 completed submissions from any user for the 'Live Ops' feed.
     """
-    # Join Submission, User, and Drop
+    # Join Submission, User, and Task
     stmt = (
-        select(models.Submission, models.User, models.Drop)
-        .join(models.User, models.Submission.user_id == models.User.id)
-        .join(models.Drop, models.Submission.drop_id == models.Drop.id)
-        .filter(models.Submission.status == models.SubmissionStatus.COMPLETED)
+        select(models.Submission, models.User, models.Task)
+        .join(models.User, models.Submission.developer_id == models.User.id)
+        .join(models.Task, models.Submission.task_id == models.Task.id)
+        .filter(models.Submission.status == models.SubmissionStatus.EVALUATED)
         .order_by(models.Submission.completed_at.desc())
         .limit(10)
     )
@@ -30,15 +31,15 @@ async def get_global_activity(db: AsyncSession = Depends(get_db)):
     results = result.all()
     
     activity = []
-    for sub, user, drop in results:
+    for sub, user, task in results:
         activity.append(schemas.ActivityEntry(
             user_id=user.id,
             user_name=user.full_name or "Unknown Agent",
             user_avatar=user.avatar_url,
-            drop_title=drop.title,
-            drop_domain=drop.domain,
-            completed_at=sub.completed_at or sub.submitted_at,
-            xp_earned=drop.reward_xp
+            drop_title=task.title,
+            drop_domain=task.category,
+            completed_at=sub.completed_at or sub.created_at,
+            xp_earned=(task.difficulty_level or 1) * 100
         ))
         
     return activity
@@ -59,14 +60,22 @@ async def update_user_me(
         current_user.bio = update.bio
     if update.avatar_url is not None:
         current_user.avatar_url = update.avatar_url
+    if update.role is not None:
+        current_user.role = update.role
+    if update.website is not None:
+        current_user.website = update.website
+    if update.location is not None:
+        current_user.location = update.location
+    if update.industry is not None:
+        current_user.industry = update.industry
+    if update.team_size is not None:
+        current_user.team_size = update.team_size
     if update.upi_id is not None:
         current_user.upi_id = update.upi_id
-    if update.social_links is not None:
-        # Merge or Replace? Let's Replace for simplicity
-        current_user.social_links = update.social_links
-        # Ensure change detection for JSON
+    if update.skills is not None:
+        current_user.skills = update.skills
         from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(current_user, "social_links")
+        flag_modified(current_user, "skills")
 
     await db.commit()
     await db.refresh(current_user)
@@ -79,16 +88,9 @@ async def get_leaderboard(
 ):
     """
     Return top 50 users sorted by XP.
-    Sorting and limiting happen in the database — no full table scan in Python.
     """
-    from sqlalchemy import cast, Integer, func as sql_func
-
     if domain:
-        # Extract the domain XP value from the JSON column via a SQL cast.
-        # Supabase/Postgres: use json_extract_path_text; SQLite: json_extract.
-        # SQLAlchemy's generic JSON subscript operator works on both.
         domain_lower = domain.lower()
-
         # Filter out users with no XP for this domain, sort descending.
         stmt = (
             select(models.User)
@@ -141,37 +143,6 @@ async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.post("/me/class")
-async def set_user_class(
-    update: schemas.UserClassUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    """
-    Sets the user's initial class/domain by giving them a starter boost.
-    """
-    current_breakdown = dict(current_user.xp_breakdown or {})
-    target_domain = update.domain.lower()
-    
-    # Grant initial XP boost if not already present heavily
-    if current_breakdown.get(target_domain, 0) < 50:
-        current_breakdown[target_domain] = 50
-        
-        # Update Total XP
-        current_user.total_xp = (current_user.total_xp or 0) + 50
-        current_user.level = int(current_user.total_xp / 1000) + 1
-        
-        # Save
-        current_user.xp_breakdown = current_breakdown
-        
-        # Force SQLAlchemy to detect JSON change if needed
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(current_user, "xp_breakdown")
-        
-        await db.commit()
-        await db.refresh(current_user)
-        
-    return {"message": f"Class set to {target_domain}", "xp": current_user.total_xp}
 
 @router.get("/me/stats", response_model=schemas.UserStats)
 async def get_my_stats(
@@ -181,13 +152,12 @@ async def get_my_stats(
     """
     Calculate current user stats on the fly.
     """
-    # Calculate stats from completed submissions
     stmt = (
-        select(models.Submission, models.Drop)
-        .join(models.Drop, models.Submission.drop_id == models.Drop.id)
+        select(models.Submission, models.Task)
+        .join(models.Task, models.Submission.task_id == models.Task.id)
         .filter(
-            models.Submission.user_id == current_user.id, 
-            models.Submission.status == models.SubmissionStatus.COMPLETED
+            models.Submission.developer_id == current_user.id, 
+            models.Submission.status == models.SubmissionStatus.EVALUATED
         )
     )
     result = await db.execute(stmt)
@@ -196,8 +166,8 @@ async def get_my_stats(
     total_xp = 0
     completed_count = len(results)
 
-    for submission, drop in results:
-        total_xp += drop.reward_xp
+    for submission, task in results:
+        total_xp += (task.difficulty_level or 1) * 100
         
     level = int(total_xp / 1000) + 1
     
@@ -223,34 +193,55 @@ async def get_my_activity(
     Returns { "YYYY-MM-DD": count }
     """
     result = await db.execute(select(models.Submission).filter(
-        models.Submission.user_id == current_user.id,
-        models.Submission.status == models.SubmissionStatus.COMPLETED
+        models.Submission.developer_id == current_user.id,
+        models.Submission.status == models.SubmissionStatus.EVALUATED
     ))
     submissions = result.scalars().all()
     
     activity = {}
     for sub in submissions:
         if sub.completed_at:
-            # Format as YYYY-MM-DD
             date_str = sub.completed_at.strftime("%Y-%m-%d")
             activity[date_str] = activity.get(date_str, 0) + 1
             
     return activity
 
-@router.get("/me/submissions", response_model=list[schemas.SubmissionWithDrop])
+@router.get("/me/submissions", response_model=list[schemas.SubmissionWithTask])
 async def get_my_submissions(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Get all submissions for the current user, including Drop details.
+    Get all submissions for the current user, including Task details.
     """
-    # For SubmissionWithDrop, we need to eager load the 'drop' relationship
     stmt = (
         select(models.Submission)
-        .options(selectinload(models.Submission.drop))
-        .filter(models.Submission.user_id == current_user.id)
-        .order_by(models.Submission.submitted_at.desc())
+        .options(selectinload(models.Submission.task))
+        .filter(models.Submission.developer_id == current_user.id)
+        .order_by(models.Submission.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    submissions = result.scalars().all()
+    
+    return submissions
+
+@router.get("/me/candidates", response_model=list[schemas.SubmissionWithTaskAndDeveloper])
+async def get_my_candidates(
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get all submissions for tasks created by the current user (startup).
+    """
+    stmt = (
+        select(models.Submission)
+        .join(models.Task, models.Submission.task_id == models.Task.id)
+        .filter(models.Task.startup_id == current_user.id)
+        .options(
+            selectinload(models.Submission.task),
+            selectinload(models.Submission.developer)
+        )
+        .order_by(models.Submission.created_at.desc())
     )
     result = await db.execute(stmt)
     submissions = result.scalars().all()
@@ -266,12 +257,6 @@ async def delete_my_account(
     Delete the current user's account and all associated data.
     This action is irreversible.
     """
-    # Delete User (Cascade should handle related data if configured, 
-    # but SQLAlchemy often needs explicit cascade in models or manual deletion if not DB-level)
-    # Assuming DB-level cascade or simplified deletion for now.
-    
-    # Check if we need to manually delete related items if no cascade
-    # For now, we trust the DB FK constraints are set to CASCADE or we just delete the user.
     await db.delete(current_user)
     await db.commit()
     

@@ -1,60 +1,86 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
-from .models import DifficultyLevel, SubmissionStatus
+from .models import DifficultyLevel, SubmissionStatus, TaskStatus, ExperienceType, MessageType
 
-class DropBase(BaseModel):
+# --- TASK (DROPS) SCHEMAS ---
+
+class TaskBase(BaseModel):
     title: str
-    description: Optional[str] = None
-    domain: Optional[str] = None
-    difficulty: Optional[DifficultyLevel] = DifficultyLevel.EASY
-    time_limit_minutes: Optional[int] = 60
-    reward_xp: Optional[int] = 100
-    inputs_url: Optional[str] = None
-    source_url: Optional[str] = None
-    source_type: Optional[str] = "A"
-    submission_type: Optional[str] = "code"
+    description: str
+    bounty_amount: Optional[float] = 0.0
+    category: Optional[str] = "backend"
+    difficulty_level: Optional[int] = 1
+    estimated_hours: Optional[int] = None
+    status: Optional[TaskStatus] = TaskStatus.OPEN
+    repo_url: Optional[str] = None
+    requirements: Optional[List[str]] = []
+    is_promoted: Optional[bool] = False
+    deadline: Optional[datetime] = None
+    max_submissions: Optional[int] = None
 
-class DropCreate(DropBase):
+class TaskCreate(TaskBase):
     pass
 
-class Drop(DropBase):
-    id: int
+class Task(TaskBase):
+    id: str
+    startup_id: str
     created_at: datetime
 
     class Config:
         from_attributes = True
 
+
+# --- SUBMISSION SCHEMAS ---
+
 class SubmissionCreate(BaseModel):
-    drop_id: int
-    submission_url: str
-    doc_url: Optional[str] = None
-    image_url: Optional[str] = None
-    # user_id is now handled strictly via token, removing it from input payload is better practice
-    # but if needed for some reason, it must be str.
-    # user_id: str 
+    task_id: str
+    repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    notes: Optional[str] = None
 
 class Submission(BaseModel):
-    id: int
-    drop_id: int
-    user_id: str
-    submission_url: str
-    doc_url: Optional[str] = None
-    image_url: Optional[str] = None
+    id: str
+    task_id: str
+    developer_id: str
+    repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    notes: Optional[str] = None
     status: SubmissionStatus
-    score: Optional[int] = None
+    ai_score: Optional[int] = None
+    final_score: Optional[int] = None
     feedback: Optional[str] = None
-    submitted_at: datetime
+    created_at: datetime
+    completed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
-class SubmissionWithDrop(Submission):
-    drop: Drop
+class DeveloperSummary(BaseModel):
+    id: str
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: Optional[str] = None
+    reputation_score: Optional[int] = 100
+    upi_id: Optional[str] = None
+
+class SubmissionWithDeveloper(Submission):
+    developer: Optional[DeveloperSummary] = None
+
+class SubmissionWithTask(Submission):
+    task: Task
 
     class Config:
         from_attributes = True
 
+class SubmissionWithTaskAndDeveloper(SubmissionWithTask):
+    developer: Optional[DeveloperSummary] = None
+
+    class Config:
+        from_attributes = True
+
+
+# --- USER (PROFILE) SCHEMAS ---
 
 class UserBase(BaseModel):
     email: str
@@ -63,27 +89,40 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-class UserClassUpdate(BaseModel):
-    domain: str
-
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
-    bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    social_links: Optional[dict] = None
+    bio: Optional[str] = None
+    skills: Optional[List[str]] = None
+    role: Optional[str] = None
+    website: Optional[str] = None
+    location: Optional[str] = None
+    industry: Optional[str] = None
+    team_size: Optional[str] = None
     upi_id: Optional[str] = None
 
 class User(UserBase):
     id: str
-    bio: Optional[str] = None
     avatar_url: Optional[str] = None
-    social_links: Optional[dict] = {}
+    role: Optional[str] = None
+    bio: Optional[str] = None
+    skills: Optional[List[str]] = []
+    website: Optional[str] = None
+    location: Optional[str] = None
+    industry: Optional[str] = None
+    team_size: Optional[str] = None
     upi_id: Optional[str] = None
     
-    # Gamification included in Profile - use Optional and coerce None
+    reputation_score: Optional[int] = 100
+    wallet_balance: Optional[float] = 0.0
+
     total_xp: Optional[int] = 0
     level: Optional[int] = 1
+    current_streak: Optional[int] = 0
     xp_breakdown: Optional[dict] = {}
+    
+    created_at: datetime
+    updated_at: datetime
 
     @field_validator('total_xp', mode='before')
     @classmethod
@@ -154,11 +193,11 @@ class ActivityEntry(BaseModel):
 class MessageCreate(BaseModel):
     content: str
     attachment_url: Optional[str] = None
-    attachment_type: Optional[str] = None  # "image", "pdf", "link"
+    attachment_type: Optional[str] = None
 
 class Message(BaseModel):
-    id: int
-    conversation_id: int
+    id: str
+    conversation_id: str
     is_from_user: bool
     content: str
     attachment_url: Optional[str] = None
@@ -170,19 +209,17 @@ class Message(BaseModel):
         from_attributes = True
 
 class ConversationCreate(BaseModel):
-    """For admins to create a new conversation with a user"""
     user_id: str
     sender_name: str
     sender_role: Optional[str] = None
     sender_email: Optional[str] = None
     sender_avatar_color: Optional[str] = "#6366F1"
-    message_type: Optional[str] = "general"  # offer, gig, feedback, general
+    message_type: Optional[str] = "general"
     subject: Optional[str] = None
-    initial_message: str  # The first message content
+    initial_message: str
 
 class ConversationSummary(BaseModel):
-    """For listing conversations in inbox"""
-    id: int
+    id: str
     sender_name: str
     sender_role: Optional[str] = None
     sender_avatar_color: str = "#6366F1"
@@ -199,8 +236,7 @@ class ConversationSummary(BaseModel):
         from_attributes = True
 
 class ConversationDetail(BaseModel):
-    """Full conversation with messages"""
-    id: int
+    id: str
     sender_name: str
     sender_role: Optional[str] = None
     sender_email: Optional[str] = None
@@ -219,10 +255,9 @@ class ConversationDetail(BaseModel):
 # --- EXPERIENCE / PORTFOLIO SCHEMAS ---
 
 class ExperienceCreate(BaseModel):
-    """Create a new experience entry"""
     title: str
     role: Optional[str] = None
-    experience_type: Optional[str] = "project"  # opensource, gig, project, hackathon
+    experience_type: Optional[str] = "project" 
     description: Optional[str] = None
     contributions: Optional[List[str]] = []
     tech_stack: Optional[List[str]] = []
@@ -233,9 +268,7 @@ class ExperienceCreate(BaseModel):
     is_current: Optional[bool] = False
     is_featured: Optional[bool] = False
 
-
 class ExperienceUpdate(BaseModel):
-    """Update an experience entry"""
     title: Optional[str] = None
     role: Optional[str] = None
     experience_type: Optional[str] = None
@@ -250,10 +283,8 @@ class ExperienceUpdate(BaseModel):
     is_featured: Optional[bool] = None
     display_order: Optional[int] = None
 
-
 class Experience(BaseModel):
-    """Experience response model"""
-    id: int
+    id: str
     user_id: str
     title: str
     role: Optional[str] = None
@@ -275,10 +306,8 @@ class Experience(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ExperienceSummary(BaseModel):
-    """Short experience summary for profile display"""
-    id: int
+    id: str
     title: str
     role: Optional[str] = None
     experience_type: str = "project"

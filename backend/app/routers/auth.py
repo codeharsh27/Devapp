@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from .. import models, schemas, auth
-from ..dependencies import get_db
+from app.core.dependencies import get_db
 import uuid
 
 router = APIRouter(

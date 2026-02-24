@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.future import select
 from sqlalchemy import delete
 from ..models import Drop, DifficultyLevel
-from ..database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
