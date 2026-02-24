@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import GlobalLoader from "@/components/GlobalLoader";
+import { ReduxProvider } from "@/lib/store/Provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GlobalLoader />
         </Suspense>
-        {children}
+        <ReduxProvider>
+          {children}
+        </ReduxProvider>
         <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>

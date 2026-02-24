@@ -1,5 +1,4 @@
 
-import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
 export interface TaskSubmission {
@@ -13,41 +12,42 @@ export interface TaskSubmission {
         id: string;
         full_name: string;
         avatar_url: string | null;
-        email: string;
+        email?: string;
     }
 }
 
 export function useTaskSubmissions(taskId: string | null) {
     const [submissions, setSubmissions] = useState<TaskSubmission[]>([]);
     const [loading, setLoading] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refresh = () => setRefreshTrigger(t => t + 1);
 
     useEffect(() => {
         if (!taskId) return;
         setLoading(true);
 
         const fetchSub = async () => {
-            const supabase = createClient();
-            const { data, error } = await supabase
-                .from('submissions')
-                .select(`
-                    id, repo_url, notes, status, final_score, created_at,
-                    developer:profiles(id, full_name, avatar_url, email)
-                `)
-                .eq('task_id', taskId)
-                .order('created_at', { ascending: false });
-
-            if (!error && data) {
-                // Format
-                const formatted = data.map((d: any) => ({
-                    ...d,
-                    developer: Array.isArray(d.developer) ? d.developer[0] : d.developer
-                }));
-                setSubmissions(formatted);
+            try {
+                const res = await fetch(`/api/tasks/${taskId}/submissions`);
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.submissions) {
+                        const formatted = json.submissions.map((d: any) => ({
+                            ...d,
+                            developer: Array.isArray(d.developer) ? d.developer[0] : d.developer
+                        }));
+                        setSubmissions(formatted);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch task submissions", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchSub();
-    }, [taskId]);
+    }, [taskId, refreshTrigger]);
 
-    return { submissions, loading, refresh: () => { } }; // refresh placeholder
+    return { submissions, loading, refresh };
 }

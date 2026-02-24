@@ -19,11 +19,16 @@ const spaceGrotesk = Space_Grotesk({
 
 type View = "overview" | "explore" | "submissions" | "messages" | "profile";
 
+import { useLiveActivity } from "@/lib/hooks/useLiveActivity";
+
 export default function TalentDashboardPage() {
     const [currentView, setCurrentView] = useState<View>("overview");
     const [userId, setUserId] = useState<string | undefined>(undefined);
     const [userName, setUserName] = useState<string | undefined>(undefined);
     const router = useRouter();
+
+    // Initialize global realtime websocket connection
+    useLiveActivity();
 
     useEffect(() => {
         const checkUser = async () => {

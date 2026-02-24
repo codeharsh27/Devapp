@@ -7,9 +7,10 @@ export function OverviewView({ setView, onOpenCreate, onOpenDrop, startupId }: {
 
     const { tasks, loading } = useStartupTasks(startupId);
 
-    const activeStream = tasks.filter(t => t.status !== 'closed').slice(0, 5);
+    const activeStream = tasks.filter(t => t.status !== 'closed' && t.status !== 'completed').slice(0, 5);
     const totalSubmissions = tasks.reduce((acc, curr) => acc + (curr.submissions || 0), 0);
-    const pendingReviews = tasks.filter(t => t.status === 'reviewing').length; // Logic might vary
+    const pendingReviews = tasks.filter(t => t.status === 'review').length;
+    const totalSpend = tasks.filter(t => t.status === 'completed' || t.status === 'closed').reduce((acc, curr) => acc + (Number(curr.bounty_amount) || 0), 0);
 
     if (loading) return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>;
 
@@ -33,16 +34,20 @@ export function OverviewView({ setView, onOpenCreate, onOpenDrop, startupId }: {
             </div>
 
             {/* Stats Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800 hover:border-indigo-500/30 transition-colors">
                     <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2">Total Applications</div>
                     <div className="text-4xl font-mono text-white">{totalSubmissions}</div>
                 </div>
-                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800">
+                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800 hover:border-emerald-500/30 transition-colors">
+                    <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2">Total Spent</div>
+                    <div className="text-4xl font-mono text-emerald-400">${totalSpend.toFixed(2)}</div>
+                </div>
+                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800 hover:border-amber-500/30 transition-colors">
                     <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2">Active Projects</div>
                     <div className="text-4xl font-mono text-white">{activeStream.length}</div>
                 </div>
-                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800">
+                <div className="p-6 rounded-2xl bg-[#111113] border border-zinc-800 hover:border-blue-500/30 transition-colors">
                     <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2">Avg. Complexity</div>
                     <div className="text-4xl font-mono text-white">
                         {tasks.length > 0

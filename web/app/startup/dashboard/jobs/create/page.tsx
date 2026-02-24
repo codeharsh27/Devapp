@@ -73,7 +73,7 @@ export default function CreateMissionPage() {
             if (error) throw error;
 
             alert("Mission Created! The Mission Box is being provisioned.");
-            router.push('/dashboard/startup');
+            router.push('/startup/dashboard');
 
         } catch (error: any) {
             alert(error.message);
@@ -89,7 +89,7 @@ export default function CreateMissionPage() {
             <div className="border-b border-zinc-900 bg-[#0c0c0e]/50 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/dashboard/startup" className="text-zinc-500 hover:text-white transition-colors text-sm">
+                        <Link href="/startup/dashboard" className="text-zinc-500 hover:text-white transition-colors text-sm">
                             ← Back to Dashboard
                         </Link>
                         <span className="text-zinc-800">|</span>

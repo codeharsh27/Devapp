@@ -27,10 +27,12 @@ function StartupLoginPageInner() {
 
         // Check for existing session on mount
         const checkSession = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+            if (user && session) {
                 // Fetch Profile Role
-                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+                const { fetchApi } = await import("@/lib/apiClient");
+                const profile = await fetchApi<any>('/users/me', { token: session.access_token }).catch(() => null);
                 const dbRole = profile?.role;
                 const metaRole = user.user_metadata?.user_type;
 
@@ -123,19 +125,17 @@ function StartupLoginPageInner() {
                     setIsSignUp(false);
                 }
             } else {
-                const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+                const { data, error: signInError } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
 
                 if (signInError) throw signInError;
 
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', user.id)
-                        .single();
+                const user = data?.user;
+                if (user && data?.session) {
+                    const { fetchApi } = await import("@/lib/apiClient");
+                    const profile = await fetchApi<any>('/users/me', { token: data.session.access_token }).catch(() => null);
 
                     if (!profile?.role) {
                         router.push("/onboarding/startup");

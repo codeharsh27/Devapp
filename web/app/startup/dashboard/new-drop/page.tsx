@@ -59,21 +59,24 @@ export default function NewDropPage() {
 
         setLoading(true);
         try {
+            const reqData: any = {
+                title,
+                description,
+                repo_template_url: repoUrl,
+                category,
+                difficulty_level: difficulty,
+                deadline: new Date(deadline).toISOString(),
+                max_submissions: maxSubmissions,
+                bounty_amount: bounty,
+                is_promoted: isPromoted,
+                criteria: criteria.map(c => c.description), // backend expects requirements as string array
+                status: "open"
+            };
+
             const res = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title,
-                    description,
-                    repo_template_url: repoUrl,
-                    category,
-                    difficulty_level: difficulty,
-                    deadline: new Date(deadline).toISOString(),
-                    max_submissions: maxSubmissions,
-                    bounty_amount: bounty,
-                    is_promoted: isPromoted,
-                    criteria
-                })
+                body: JSON.stringify(reqData)
             });
 
             const data = await res.json();

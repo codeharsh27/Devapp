@@ -10,6 +10,7 @@ export function StartupSidebar({ currentView, setCurrentView, onOpenCreate }: { 
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: Monitor },
         { id: 'drops', label: 'Missions', icon: Layers },
+        { id: 'candidates', label: 'Candidates', icon: Users },
         { id: 'talent', label: 'Talent Pool', icon: Users },
         { id: 'messages', label: 'Messages', icon: MessageSquare },
         { id: 'profile', label: 'Profile', icon: User },

@@ -34,9 +34,10 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // 1. Auth Check
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // 1. Auth Check - we still fetch the session to get the token for FastAPI
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -45,34 +46,30 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const {
             title, description, repo_template_url,
-            category, difficulty_level, deadline, max_submissions, criteria
+            category, difficulty_level, deadline, max_submissions, criteria,
+            bounty_amount, is_promoted
         } = body;
 
-        // 2. Call Service to Create Task (service handles role check)
-        const task = await tasksService.createTask(user.id, {
-            title, description, repo_template_url, category, difficulty_level, deadline, max_submissions
-        });
+        // Extract requirements from criteria objects if any
+        const requirements = criteria && Array.isArray(criteria)
+            ? criteria.map(c => c.description || c.type)
+            : [];
 
-        // 3. Insert Criteria if provided
-        if (criteria && Array.isArray(criteria) && criteria.length > 0) {
-            const criteriaToInsert = criteria.map((c: any) => ({
-                task_id: task.id,
-                type: c.type,
-                weight: c.weight,
-                description: c.description,
-                test_file_path: c.test_file_path
-            }));
+        // 2. Call Service to Create Task (service handles role check and calls FastAPI)
+        const taskData = {
+            title,
+            description,
+            repo_url: repo_template_url,
+            category,
+            difficulty_level,
+            bounty_amount,
+            is_promoted,
+            deadline,
+            max_submissions,
+            requirements
+        };
 
-            const { error: criteriaError } = await supabase
-                .from("task_criteria")
-                .insert(criteriaToInsert);
-
-            if (criteriaError) {
-                console.error("Error creating criteria:", criteriaError);
-                // Task exists but criteria failed — log and continue.
-                // Consider wrapping in a DB transaction for atomicity.
-            }
-        }
+        const task = await tasksService.createTask(token, taskData);
 
         return NextResponse.json({ success: true, task });
 

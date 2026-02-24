@@ -1,33 +1,42 @@
 
 import { createClient } from "@/lib/supabase/client";
+import { fetchApi } from "@/lib/apiClient";
 
 export async function createStatsService() {
     const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
     return {
         async getTalentStats(developerId: string) {
-            // Parallel queries for performance
-            const [
-                { count: enrollments },
-                { count: completed },
-                { data: avgScoreData }
-            ] = await Promise.all([
-                supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('developer_id', developerId).eq('status', 'enrolled'),
-                supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('developer_id', developerId).eq('status', 'evaluated'),
-                supabase.from('submissions').select('final_score').eq('developer_id', developerId).eq('status', 'evaluated')
-            ]);
+            try {
+                // Fetch stats from FastAPI Backend
+                const stats: any = await fetchApi('/users/me/stats', { token });
 
-            let avgScore = 0;
-            if (avgScoreData && avgScoreData.length > 0) {
-                const total = avgScoreData.reduce((acc, curr) => acc + (curr.final_score || 0), 0);
-                avgScore = Math.floor(total / avgScoreData.length);
+                // The frontend expects: enrollments, completed, avgScore
+                // We'll need to calculate enrollments and avgScore by fetching submissions 
+                // Alternatively, backend /users/me/submissions can be used to manually count
+                const submissions: any[] = await fetchApi('/users/me/submissions', { token });
+
+                const enrolled = submissions.filter(s => s.status === 'ENROLLED' || s.status === 'enrolled').length;
+                const evaluated = submissions.filter(s => s.status === 'EVALUATED' || s.status === 'evaluated');
+                const completed = evaluated.length;
+
+                let avgScore = 0;
+                if (completed > 0) {
+                    const totalScore = evaluated.reduce((acc, curr) => acc + (curr.final_score || 0), 0);
+                    avgScore = Math.floor(totalScore / completed);
+                }
+
+                return {
+                    enrollments: enrolled,
+                    completed: completed,
+                    avgScore
+                };
+            } catch (error) {
+                console.error("Failed to fetch talent stats:", error);
+                return { enrollments: 0, completed: 0, avgScore: 0 };
             }
-
-            return {
-                enrollments: enrollments || 0,
-                completed: completed || 0,
-                avgScore
-            };
         },
 
         async getStartupStats(startupId: string) {

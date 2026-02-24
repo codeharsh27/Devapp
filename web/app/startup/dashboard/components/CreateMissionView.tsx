@@ -106,23 +106,33 @@ export function CreateMissionView({ onClose, onSuccess }: CreateMissionProps) {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Not authenticated");
-
-            const { error } = await supabase.from('missions').insert({
-                title,
-                description,
-                category,
-                status: 'Open',
-                user_id: user.id,
-                bounty: parseFloat(bounty),
-                urgency,
-                requirements: [...criteria, ...skills],
-                links,
-                created_at: new Date().toISOString()
+            // In the Next.js frontend, we use our own API which hits the FastAPI backend via server-tasks.ts
+            const resp = await fetch("/api/tasks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    category,
+                    bounty_amount: parseFloat(bounty) || 0,
+                    // map urgency to a difficulty level for now or keep generic
+                    difficulty_level: urgency === 'urgent' ? 3 : urgency === 'high' ? 2 : 1,
+                    // map links array to repo_template_url (we just use the first link for simplicity)
+                    repo_template_url: links.length > 0 ? links[0] : null,
+                    // Optional criteria mapping to match earlier backend expectations
+                    criteria: criteria.map(c => ({
+                        type: "Requirement",
+                        weight: 1,
+                        description: c,
+                        test_file_path: null
+                    }))
+                }),
             });
 
-            if (error) throw error;
+            if (!resp.ok) {
+                const errorData = await resp.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed with status ${resp.status}`);
+            }
             onSuccess();
         } catch (err: any) {
             console.error(err);

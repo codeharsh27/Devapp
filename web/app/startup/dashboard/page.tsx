@@ -9,6 +9,7 @@ import { STARTUP_ROLES } from "@/lib/auth/roles";
 import { OverviewView } from "./components/OverviewView";
 import { PastDropsView } from "./components/PastDropsView";
 import { TalentView } from "./components/TalentView";
+import { CandidatesView } from "./components/CandidatesView";
 import { DropDetailView } from "./components/DropDetailView";
 import { ProfileView } from "./components/ProfileView";
 import { RealtimeChat } from "@/components/RealtimeChat";
@@ -16,7 +17,7 @@ import { useStartupTasks } from "@/lib/hooks/useStartupTasks";
 import { SupportView } from "./components/SupportView";
 
 export default function StartupDashboardPage() {
-    const [currentView, setCurrentView] = useState<'overview' | 'drops' | 'talent' | 'messages' | 'profile' | 'support'>('overview');
+    const [currentView, setCurrentView] = useState<'overview' | 'drops' | 'candidates' | 'talent' | 'messages' | 'profile' | 'support'>('overview');
     const [userId, setUserId] = useState<string | undefined>(undefined);
     const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
     const [isAuthorized, setIsAuthorized] = useState(false);
@@ -40,11 +41,21 @@ export default function StartupDashboardPage() {
             }
             setUserId(user.id);
 
-            const profile = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (profile.data && STARTUP_ROLES.includes(profile.data.role)) {
-                setIsAuthorized(true);
-            } else {
-                router.push("/dashboard/talent");
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) throw new Error("No token");
+
+                const { fetchApi } = await import("@/lib/apiClient");
+                const profile = await fetchApi<any>('/users/me', { token: session.access_token });
+
+                if (profile && STARTUP_ROLES.includes(profile.role)) {
+                    setIsAuthorized(true);
+                } else {
+                    router.push("/talent/dashboard");
+                }
+            } catch (err) {
+                console.error("Auth check failed", err);
+                router.push("/talent/dashboard");
             }
         };
         checkUser();
@@ -112,6 +123,10 @@ export default function StartupDashboardPage() {
 
                     {currentView === 'talent' && (
                         <TalentView onMessage={openChat} />
+                    )}
+
+                    {currentView === 'candidates' && (
+                        <CandidatesView onMessageRedirect={openChat} />
                     )}
 
                     {currentView === 'messages' && (

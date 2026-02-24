@@ -5,109 +5,37 @@ import {
     MessageSquare, Clock, ArrowUpRight, Github, Code2, Zap, Layout, Terminal
 } from "lucide-react";
 import { Space_Grotesk } from "next/font/google";
+import { useCandidates, Candidate } from "@/lib/hooks/useCandidates";
+import { toast } from "sonner";
 
 const spaceGrotesk = Space_Grotesk({
     subsets: ["latin"],
     weight: ["300", "400", "500", "600"],
 });
 
-// TYPES
-type SubmissionStatus = 'Shortlisted' | 'Pending Review' | 'Changes Requested' | 'Accepted' | 'Rejected';
+// We now use Candidate from useCandidates hook instead of local Submission/MOCK_SUBMISSIONS
+type SubmissionStatus = string;
 
-interface Submission {
-    id: string;
-    missionTitle: string;
-    developerName: string;
-    developerAvatarInitials: string;
-    developerColor: string;
-    status: SubmissionStatus;
-    submittedAt: string;
-    repoUrl: string;
-    liveUrl?: string;
-    matchScore: number; // 0-100
-    aiSummary: string;
-    technologies: string[];
-}
-
-// MOCK DATA
-const MOCK_SUBMISSIONS: Submission[] = [
-    {
-        id: "s1",
-        missionTitle: "Integrate Stripe Connect",
-        developerName: "Elena Rodriguez",
-        developerAvatarInitials: "ER",
-        developerColor: "emerald",
-        status: "Shortlisted",
-        submittedAt: "2h ago",
-        repoUrl: "github.com/elena/stripe-connect-module",
-        liveUrl: "https://stripe-demo.vercel.app",
-        matchScore: 98,
-        aiSummary: "Perfect implementation of the intent. Handles edge cases for failed webhooks. Clean, typed code.",
-        technologies: ["Node.js", "Stripe SDK", "TypeScript"]
-    },
-    {
-        id: "s2",
-        missionTitle: "Landing Page Redesign",
-        developerName: "David Chen",
-        developerAvatarInitials: "DC",
-        developerColor: "blue",
-        status: "Pending Review",
-        submittedAt: "5h ago",
-        repoUrl: "github.com/davidc/landing-v2",
-        matchScore: 85,
-        aiSummary: "Visuals match the Figma file exactly. However, mobile responsiveness breaks on iPhone SE.",
-        technologies: ["React", "Tailwind", "Framer Motion"]
-    },
-    {
-        id: "s3",
-        missionTitle: "Mobile Auth Flow",
-        developerName: "Sarah Miller",
-        developerAvatarInitials: "SM",
-        developerColor: "pink",
-        status: "Changes Requested",
-        submittedAt: "1d ago",
-        repoUrl: "github.com/sarahm/flutter-auth",
-        matchScore: 72,
-        aiSummary: "Logic is sound but lacks error handling for network timeouts.",
-        technologies: ["Flutter", "Dart", "Firebase"]
-    },
-    {
-        id: "s4",
-        missionTitle: "Database Migration",
-        developerName: "James Wilson",
-        developerAvatarInitials: "JW",
-        developerColor: "amber",
-        status: "Rejected",
-        submittedAt: "2d ago",
-        repoUrl: "github.com/jwilson/db-migration",
-        matchScore: 40,
-        aiSummary: "Failed to compile. Missing dependency in package.json.",
-        technologies: ["PostgreSQL", "SQL"]
-    }
-];
-
-export function CandidatesView({ onMessageRedirect }: { onMessageRedirect?: (user: { name: string, role: string, dropId: string }) => void }) {
+export function CandidatesView({ onMessageRedirect }: { onMessageRedirect?: (targetUserId: string) => void }) {
+    const { candidates, loading, refresh } = useCandidates();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus | 'All'>('All');
-    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<Candidate | null>(null);
+    const [isAwarding, setIsAwarding] = useState(false);
 
     const filteredSubmissions = useMemo(() => {
-        return MOCK_SUBMISSIONS.filter(s => {
+        return candidates.filter(s => {
             const matchesSearch = s.developerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 s.missionTitle.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = selectedStatus === 'All' || s.status === selectedStatus;
             return matchesSearch && matchesStatus;
         });
-    }, [searchQuery, selectedStatus]);
+    }, [searchQuery, selectedStatus, candidates]);
 
-    const handleMessage = (e: React.MouseEvent, submission: Submission) => {
+    const handleMessage = (e: React.MouseEvent, submission: Candidate) => {
         e.stopPropagation();
         if (onMessageRedirect) {
-            onMessageRedirect({
-                name: submission.developerName,
-                role: "Developer",
-                dropId: 'submission_' + submission.id
-            });
+            onMessageRedirect(submission.developer_id);
         }
     };
 
@@ -144,8 +72,8 @@ export function CandidatesView({ onMessageRedirect }: { onMessageRedirect?: (use
                                 key={status}
                                 onClick={() => setSelectedStatus(status as any)}
                                 className={`px-4 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-all ${selectedStatus === status
-                                        ? 'bg-zinc-100 text-black border-zinc-100'
-                                        : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:border-zinc-600'
+                                    ? 'bg-zinc-100 text-black border-zinc-100'
+                                    : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:border-zinc-600'
                                     }`}
                             >
                                 {status}
@@ -301,6 +229,30 @@ export function CandidatesView({ onMessageRedirect }: { onMessageRedirect?: (use
                                 </div>
                             </div>
 
+                            {/* Payment Info */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2 mb-3">
+                                    <Zap className="w-4 h-4 text-emerald-500" /> Payout Details
+                                </h3>
+                                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
+                                    {selectedSubmission.developerUpiId ? (
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-xs text-zinc-500 uppercase font-bold mb-1">Developer UPI ID</p>
+                                                <p className="text-emerald-400 font-mono text-sm font-bold">{selectedSubmission.developerUpiId}</p>
+                                            </div>
+                                            <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-lg font-bold">
+                                                Verified
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-zinc-500 text-sm">
+                                            This developer has not provided a UPI ID. Manual payout coordination required.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                         </div>
 
                         {/* Footer Actions */}
@@ -308,8 +260,33 @@ export function CandidatesView({ onMessageRedirect }: { onMessageRedirect?: (use
                             <button className="py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
                                 Request Changes
                             </button>
-                            <button className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
-                                <CheckCircle2 className="w-4 h-4" /> Accept & Pay
+                            <button
+                                onClick={async () => {
+                                    if (isAwarding) return;
+                                    setIsAwarding(true);
+                                    try {
+                                        const res = await fetch(`/api/tasks/${selectedSubmission.task_id}/award`, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ submission_id: selectedSubmission.id }),
+                                        });
+                                        const json = await res.json();
+                                        if (res.ok && json.success) {
+                                            toast.success("Bounty awarded successfully!");
+                                            setSelectedSubmission(null);
+                                            refresh();
+                                        } else {
+                                            toast.error(json.error || "Failed to award task");
+                                        }
+                                    } catch (err: any) {
+                                        toast.error(err.message || "Failed to award task");
+                                    } finally {
+                                        setIsAwarding(false);
+                                    }
+                                }}
+                                disabled={isAwarding || selectedSubmission.status === 'Accepted'}
+                                className={`py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 ${isAwarding || selectedSubmission.status === 'Accepted' ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
+                                <CheckCircle2 className="w-4 h-4" /> {isAwarding ? "Awarding..." : selectedSubmission.status === 'Accepted' ? "Already Accepted" : "Accept & Pay"}
                             </button>
                         </div>
                     </div>

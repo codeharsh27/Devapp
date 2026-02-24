@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { fetchApi } from "@/lib/apiClient";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { Building2, Globe, MapPin, Mail, Upload } from "lucide-react";
 
@@ -11,42 +12,66 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
     const [isEditing, setIsEditing] = useState(false);
 
     // Edit Form
-    const [form, setForm] = useState({ full_name: '', bio: '', website: '', location: '', company_name: '' });
+    const [form, setForm] = useState({ full_name: '', bio: '', website: '', location: '', industry: '', team_size: '' });
 
     useEffect(() => {
         if (!userId) return;
         const fetchProfile = async () => {
             const supabase = createClient();
-            const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-            if (data) {
-                setProfile(data);
-                // Note: 'company_name' might not be in schema yet, using metadata or full_name for now
-                setForm({
-                    full_name: data.full_name || '',
-                    bio: data.bio || '',
-                    website: data.website || '',
-                    location: data.location || '', // Check migration if column exists
-                    company_name: data.company_name || ''
-                });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) {
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            try {
+                const data: any = await fetchApi('/users/me', { token });
+                if (data) {
+                    setProfile(data);
+                    // Note: 'company_name' might not be in schema yet, using metadata or full_name for now
+                    setForm({
+                        full_name: data.full_name || '',
+                        bio: data.bio || '',
+                        website: data.website || '',
+                        location: data.location || '',
+                        industry: data.industry || '',
+                        team_size: data.team_size || ''
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load company profile", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchProfile();
     }, [userId]);
 
     const saveProfile = async () => {
         const supabase = createClient();
-        // Filter out keys not in valid schema
+        const { data: { session } } = await supabase.auth.getSession();
+
         const updates = {
             full_name: form.full_name,
             bio: form.bio,
             website: form.website,
-            // location: form.location, // Assuming column exists or use metadata
+            location: form.location,
+            industry: form.industry,
+            team_size: form.team_size
         };
 
-        await supabase.from('profiles').update(updates).eq('id', userId);
-        setIsEditing(false);
-        setProfile({ ...profile, ...updates });
+        try {
+            await fetchApi('/users/me', {
+                method: 'PUT',
+                token: session?.access_token,
+                body: JSON.stringify(updates)
+            });
+            setIsEditing(false);
+            setProfile({ ...profile, ...updates });
+        } catch (err) {
+            console.error("Failed to update profile", err);
+        }
     };
 
     if (loading) return <PageLoader />;
@@ -67,9 +92,21 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
                                 <label className="block text-xs text-zinc-500 uppercase tracking-wide mb-1">Description</label>
                                 <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-indigo-500 transition-colors h-32" />
                             </div>
-                            <div>
+                            <div className="col-span-2 md:col-span-1">
                                 <label className="block text-xs text-zinc-500 uppercase tracking-wide mb-1">Website</label>
                                 <input value={form.website} onChange={e => setForm({ ...form, website: e.target.value })} className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-indigo-500 transition-colors" />
+                            </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs text-zinc-500 uppercase tracking-wide mb-1">Location</label>
+                                <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-indigo-500 transition-colors" placeholder="e.g. San Francisco, CA" />
+                            </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs text-zinc-500 uppercase tracking-wide mb-1">Industry</label>
+                                <input value={form.industry} onChange={e => setForm({ ...form, industry: e.target.value })} className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-indigo-500 transition-colors" placeholder="e.g. Technology" />
+                            </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs text-zinc-500 uppercase tracking-wide mb-1">Team Size</label>
+                                <input value={form.team_size} onChange={e => setForm({ ...form, team_size: e.target.value })} className="w-full bg-black border border-zinc-800 p-3 rounded-lg text-white outline-none focus:border-indigo-500 transition-colors" placeholder="e.g. 10-50" />
                             </div>
                         </div>
                         <div className="flex gap-4 pt-4 border-t border-zinc-800">
@@ -92,7 +129,9 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
                                                 <Globe className="w-4 h-4" /> Website
                                             </a>
                                         )}
-                                        <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> San Francisco, CA</span>
+                                        {profile?.location && (
+                                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.location}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -109,11 +148,11 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
                                 <div className="space-y-4">
                                     <div>
                                         <span className="block text-zinc-600 text-xs mb-1">Industry</span>
-                                        <span className="text-zinc-300 text-sm font-medium">Technology</span>
+                                        <span className="text-zinc-300 text-sm font-medium">{profile?.industry || "-"}</span>
                                     </div>
                                     <div>
                                         <span className="block text-zinc-600 text-xs mb-1">Team Size</span>
-                                        <span className="text-zinc-300 text-sm font-medium">10-50</span>
+                                        <span className="text-zinc-300 text-sm font-medium">{profile?.team_size || "-"}</span>
                                     </div>
                                 </div>
                             </div>

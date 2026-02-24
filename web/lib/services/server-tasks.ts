@@ -1,67 +1,59 @@
 
 import { createClient } from "@/lib/supabase/server";
+import { fetchApi } from "@/lib/apiClient";
 
 // Server-side version of createTasksService
 export async function createServerTasksService() {
     const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
     return {
         async getStartupTasks(startupId: string) {
-            const { data, error } = await supabase
-                .from('tasks')
-                .select('*, submissions(count)')
-                .eq('startup_id', startupId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            return data.map((task: any) => ({
+            // Fetch tasks for startup from FastAPI
+            const tasks: any[] = await fetchApi('/api/v1/tasks', { token });
+            // For now, filter here if backend returns all, or implement on backend
+            const startupTasks = tasks.filter(t => t.startup_id === startupId);
+            return startupTasks.map((task: any) => ({
                 ...task,
-                submissions: task.submissions?.[0]?.count || 0
+                submissions: 0 // Will need to get this from backend
             }));
         },
 
-        async createTask(userId: string, taskData: any) {
-            // Validation: Verify User is Startup
-            const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
-            // Basic role check - ideally rely on RLS but explicit check good for errors
-            if (!profile) throw new Error("Unauthorized");
-
-            const { data, error } = await supabase
-                .from('tasks')
-                .insert({
-                    ...taskData,
-                    startup_id: userId,
-                    status: 'open'
+        async createTask(unusedUserId: string, taskData: any) {
+            // Validation: Verify User is Startup handled by backend JWT automatically
+            const data = await fetchApi('/api/v1/tasks', {
+                method: 'POST',
+                token,
+                body: JSON.stringify({
+                    title: taskData.title,
+                    description: taskData.description,
+                    bounty_amount: taskData.bounty_amount || 0,
+                    category: taskData.category || "backend",
+                    difficulty_level: taskData.difficulty_level || 1,
+                    estimated_hours: 0,
+                    status: 'OPEN', // TaskStatus enum matching backend
+                    repo_url: taskData.repo_url,
+                    requirements: taskData.requirements || [],
+                    is_promoted: taskData.is_promoted || false,
+                    deadline: taskData.deadline || null,
+                    max_submissions: taskData.max_submissions || null
                 })
-                .select()
-                .single();
-
-            if (error) throw error;
+            });
             return data;
         },
 
         async getOpenTasks(filters?: { category?: string, limit?: number }) {
-            let query = supabase
-                .from('tasks')
-                .select(`
-                *,
-                startup:profiles(full_name, avatar_url)
-            `)
-                .eq('status', 'open')
-                .order('created_at', { ascending: false });
+            const tasks: any[] = await fetchApi('/api/v1/tasks', { token });
+            let openTasks = tasks.filter(t => t.status === 'OPEN' || t.status === 'open');
 
             if (filters?.category) {
-                query = query.eq('category', filters.category);
+                openTasks = openTasks.filter(t => t.category === filters.category);
             }
-
             if (filters?.limit) {
-                query = query.limit(filters.limit);
+                openTasks = openTasks.slice(0, filters.limit);
             }
-
-            const { data, error } = await query;
-            if (error) throw error;
-            return data;
+            return openTasks.map(t => ({ ...t, startup: { full_name: "Startup", avatar_url: "" } }));
         }
     };
 }

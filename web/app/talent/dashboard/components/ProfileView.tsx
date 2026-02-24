@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { fetchApi } from "@/lib/apiClient";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { Share2, Award, ExternalLink, Layout, Code2, ShieldCheck, Zap, Lock } from "lucide-react";
 import { ProofOfWorkModal } from "./ProofOfWorkModal";
@@ -17,7 +18,8 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
         full_name: '',
         bio: '',
         website: '',
-        skills: [] as string[]
+        skills: [] as string[],
+        upi_id: ''
     });
 
     const [completedTasks, setCompletedTasks] = useState<any[]>([]);
@@ -26,48 +28,69 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
         if (!userId) return;
         const fetchProfile = async () => {
             const supabase = createClient();
-            const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-            if (data) {
-                setProfile(data);
-                setForm({
-                    full_name: data.full_name || '',
-                    bio: data.bio || '',
-                    website: data.website || '',
-                    skills: data.skills || []
-                });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) return;
+
+            try {
+                // Fetch User Profile
+                const data: any = await fetchApi('/users/me', { token });
+                if (data) {
+                    setProfile(data);
+                    setForm({
+                        full_name: data.full_name || '',
+                        bio: data.bio || '',
+                        website: data.website || '',
+                        skills: data.skills || [],
+                        upi_id: data.upi_id || ''
+                    });
+                }
+
+                // Fetch Completed Tasks (Evaluated Submissions)
+                const submissions: any[] = await fetchApi('/users/me/submissions', { token });
+                const completed = submissions.filter(s => s.status === 'EVALUATED' || s.status === 'evaluated');
+                setCompletedTasks(completed);
+
+            } catch (err) {
+                console.error("Failed to load profile", err);
+            } finally {
+                setLoading(false);
             }
-
-            // Fetch Completed Tasks
-            const { data: completed } = await supabase
-                .from('submissions')
-                .select(`
-                    id, final_score, created_at,
-                    task:tasks(title, category, startup:profiles(full_name))
-                `)
-                .eq('developer_id', userId)
-                .eq('status', 'evaluated')
-                .order('created_at', { ascending: false });
-
-            if (completed) setCompletedTasks(completed);
-
-            setLoading(false);
         };
         fetchProfile();
     }, [userId]);
 
     const saveProfile = async () => {
         const supabase = createClient();
-        await supabase.from('profiles').update(form).eq('id', userId);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        await fetchApi('/users/me', {
+            method: 'PUT',
+            token: session?.access_token,
+            body: JSON.stringify(form)
+        });
+
         setIsEditing(false);
-        // Refresh
         setProfile({ ...profile, ...form });
     };
 
     const handleUpgrade = async () => {
         setIsUpgrading(true);
         const supabase = createClient();
-        await supabase.from('profiles').update({ subscription_tier: 'pro' }).eq('id', userId);
-        setProfile({ ...profile, subscription_tier: 'pro' });
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // This is a custom field. Make sure backend schema supports it or use role/domains.
+        try {
+            await fetchApi('/users/me', {
+                method: 'PUT',
+                token: session?.access_token,
+                body: JSON.stringify({ role: 'pro' }) // Update appropriately to match your schema
+            });
+            setProfile({ ...profile, subscription_tier: 'pro' });
+        } catch (e) {
+            console.error('Upgrade failed', e);
+        }
+
         setIsUpgrading(false);
         alert("Welcome to DevApp Pro (Founding Member)!");
     };
@@ -117,6 +140,12 @@ export function ProfileView({ userId }: { userId: string | undefined }) {
                             <div>
                                 <label className="block text-xs text-zinc-500 uppercase tracking-widest mb-2 font-bold">Bio</label>
                                 <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} className="w-full bg-[#0c0c0e] border border-zinc-800 p-3 rounded-xl text-white focus:border-indigo-500 outline-none h-28 resize-none transition-colors" placeholder="Tell startups about your engineering focus..." />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-zinc-500 uppercase tracking-widest mb-2 font-bold flex items-center gap-2">Payment Details (UPI ID)</label>
+                                <input value={form.upi_id} onChange={e => setForm({ ...form, upi_id: e.target.value })} className="w-full bg-[#0c0c0e] border border-zinc-800 p-3 rounded-xl text-white focus:border-indigo-500 outline-none transition-colors" placeholder="e.g. yourname@ybl" />
+                                <p className="text-[10px] text-zinc-500 mt-2">Startups will use this to pay out your mission bounties.</p>
                             </div>
 
                             <div>
