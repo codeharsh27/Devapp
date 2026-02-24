@@ -12,7 +12,7 @@ export async function createChatService() {
                 const convos: any[] = await fetchApi('/api/v1/chat', { token });
                 return convos.map(c => ({
                     id: c.id,
-                    task_id: null,
+                    sender_name: c.sender_name || "Startup",
                     participant: { full_name: c.sender_name || "Startup", avatar_url: "" },
                     last_message: c.last_message ? { text: c.last_message, created_at: c.last_message_time || c.updated_at } : null,
                     updated_at: c.updated_at,

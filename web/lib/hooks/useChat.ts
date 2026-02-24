@@ -1,12 +1,19 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createChatService } from "@/lib/services/chat";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
+import { setConversations, setMessages, addMessage, setActiveConversation } from "@/lib/store/slices/chatSlice";
 
 export function useChat(userId: string | undefined) {
-    const [conversations, setConversations] = useState<any[]>([]);
-    const [messages, setMessages] = useState<any[]>([]);
-    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const dispatch = useAppDispatch();
+    const chatState = useAppSelector(state => state.chat);
+
+    // We can pull these straight from Redux
+    const conversations = chatState.conversations;
+    const activeConversationId = chatState.activeConversationId;
+    const messages = activeConversationId ? (chatState.messages[activeConversationId] || []) : [];
+
     const [loadingConvos, setLoadingConvos] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -18,7 +25,7 @@ export function useChat(userId: string | undefined) {
             try {
                 const service = await createChatService();
                 const data = await service.getConversations(userId);
-                setConversations(data);
+                dispatch(setConversations(data));
                 setError(null);
             } catch (e: any) {
                 console.error("fetchConvos error:", JSON.stringify(e, null, 2), e);
@@ -39,7 +46,7 @@ export function useChat(userId: string | undefined) {
             try {
                 const service = await createChatService();
                 const data = await service.getMessages(activeConversationId);
-                setMessages(data || []);
+                dispatch(setMessages({ conversationId: activeConversationId, messages: data || [] }));
                 setError(null);
             } catch (e: any) {
                 console.error("fetchMsgs error:", JSON.stringify(e, null, 2), e);
@@ -48,7 +55,10 @@ export function useChat(userId: string | undefined) {
                 setLoadingMessages(false);
             }
         };
-        fetchMsgs();
+        // Only fetch if Redux doesn't have it yet to optimize
+        if (!chatState.messages[activeConversationId]) {
+            fetchMsgs();
+        }
 
         // Subscription
         const supabase = createClient();
@@ -60,15 +70,13 @@ export function useChat(userId: string | undefined) {
                 table: 'messages',
                 filter: `conversation_id=eq.${activeConversationId}`
             }, (payload) => {
-                const newMsg = payload.new;
-                setMessages(prev => [...prev, newMsg]);
+                const newMsg = payload.new as any;
+                dispatch(addMessage(newMsg));
 
-                // Update conversation preview
-                setConversations(prev => prev.map(c =>
-                    c.id === activeConversationId
-                        ? { ...c, last_message: { text: newMsg.content, created_at: newMsg.created_at } }
-                        : c
-                ).sort((a, b) => new Date(b.last_message?.created_at || 0).getTime() - new Date(a.last_message?.created_at || 0).getTime())); // Move to top
+                // Update conversation preview implicitly by fetching conversations again?
+                // Or we can write a dedicated redux action to bump the conversation order and preview. 
+                // For now, easy solution is to refetch conversations
+                createChatService().then(s => s.getConversations(userId).then(data => dispatch(setConversations(data))));
             })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
@@ -99,10 +107,10 @@ export function useChat(userId: string | undefined) {
         try {
             const service = await createChatService();
             const convoId = await service.startConversation(userId, otherUserId);
-            setActiveConversationId(convoId);
+            dispatch(setActiveConversation(convoId));
             // Also refresh convos?
             const data = await service.getConversations(userId);
-            setConversations(data);
+            dispatch(setConversations(data));
             setError(null);
         } catch (e: any) {
             console.error("startChat error:", e);
@@ -110,11 +118,16 @@ export function useChat(userId: string | undefined) {
         }
     };
 
+    // Wrapped setter
+    const setLocalActiveConversationId = (id: string | null) => {
+        dispatch(setActiveConversation(id));
+    };
+
     return {
         conversations,
         messages,
         activeConversationId,
-        setActiveConversationId,
+        setActiveConversationId: setLocalActiveConversationId,
         sendMessage,
         startChat,
         loadingConvos,

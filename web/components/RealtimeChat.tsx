@@ -86,12 +86,12 @@ export function RealtimeChat({ userId, defaultConversationId }: { userId: string
                             >
                                 <div className="relative">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white bg-indigo-600 overflow-hidden`}>
-                                        {convo.participant.avatar_url ? <img src={convo.participant.avatar_url} className="w-full h-full object-cover" /> : convo.participant.full_name?.substring(0, 2).toUpperCase()}
+                                        {convo.participant?.avatar_url ? <img src={convo.participant.avatar_url} className="w-full h-full object-cover" /> : convo.participant?.full_name?.substring(0, 2).toUpperCase() || convo.sender_name?.substring(0, 2).toUpperCase() || "?"}
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-0.5">
-                                        <span className="font-medium text-zinc-200 text-sm truncate">{convo.participant.full_name || "Unknown"}</span>
+                                        <span className="font-medium text-zinc-200 text-sm truncate">{convo.participant?.full_name || convo.sender_name || "Unknown"}</span>
                                         <span className="text-[10px] text-zinc-500">{convo.last_message ? new Date(convo.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                     </div>
                                     <p className={`text-xs truncate ${activeConversationId === convo.id ? 'text-zinc-300' : 'text-zinc-500'}`}>
@@ -113,11 +113,11 @@ export function RealtimeChat({ userId, defaultConversationId }: { userId: string
                             {activeConvo && (
                                 <div className="flex items-center gap-3">
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white bg-indigo-600 overflow-hidden`}>
-                                        {activeConvo.participant.avatar_url ? <img src={activeConvo.participant.avatar_url} className="w-full h-full object-cover" /> : activeConvo.participant.full_name?.substring(0, 2).toUpperCase()}
+                                        {activeConvo.participant?.avatar_url ? <img src={activeConvo.participant.avatar_url} className="w-full h-full object-cover" /> : activeConvo.participant?.full_name?.substring(0, 2).toUpperCase() || activeConvo.sender_name?.substring(0, 2).toUpperCase() || "?"}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-zinc-200 text-sm">{activeConvo.participant.full_name}</h3>
-                                        <p className="text-xs text-zinc-500">{activeConvo.participant.role}</p>
+                                        <h3 className="font-bold text-zinc-200 text-sm">{activeConvo.participant?.full_name || activeConvo.sender_name}</h3>
+                                        <p className="text-xs text-zinc-500">Participant</p>
                                     </div>
                                 </div>
                             )}

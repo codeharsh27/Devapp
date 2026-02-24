@@ -3,9 +3,11 @@
 import { Monitor, Layers, Users, MessageSquare, User, LogOut, Plus, Code2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppSelector } from "@/lib/store/hooks";
 
 export function StartupSidebar({ currentView, setCurrentView, onOpenCreate }: { currentView: string, setCurrentView: (view: any) => void, onOpenCreate: () => void }) {
     const router = useRouter();
+    const globalUnreadCount = useAppSelector(state => state.chat.globalUnreadCount);
 
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: Monitor },
@@ -46,10 +48,17 @@ export function StartupSidebar({ currentView, setCurrentView, onOpenCreate }: { 
                         <button
                             key={item.id}
                             onClick={() => setCurrentView(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isActive ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${isActive ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                         >
-                            <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'group-hover:text-indigo-400 transition-colors'}`} />
-                            <span className="text-sm font-medium">{item.label}</span>
+                            <div className="flex items-center gap-3">
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'group-hover:text-indigo-400 transition-colors'}`} />
+                                <span className="text-sm font-medium">{item.label}</span>
+                            </div>
+                            {item.id === 'messages' && globalUnreadCount > 0 && (
+                                <span className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {globalUnreadCount}
+                                </span>
+                            )}
                         </button>
                     )
                 })}
