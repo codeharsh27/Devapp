@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppSelector } from "@/lib/store/hooks";
 import { StartupSidebar } from "./components/StartupSidebar";
 import { STARTUP_ROLES } from "@/lib/auth/roles";
 import { OverviewView } from "./components/OverviewView";
@@ -18,12 +19,13 @@ import { SupportView } from "./components/SupportView";
 
 export default function StartupDashboardPage() {
     const [currentView, setCurrentView] = useState<'overview' | 'drops' | 'candidates' | 'talent' | 'messages' | 'profile' | 'support'>('overview');
-    const [userId, setUserId] = useState<string | undefined>(undefined);
     const [selectedDropId, setSelectedDropId] = useState<string | null>(null);
-    const [isAuthorized, setIsAuthorized] = useState(false);
-
-    // New state for handling chat redirection
     const [defaultConversationId, setDefaultConversationId] = useState<string | null>(null);
+
+    const { user, isAuthenticated, isLoading } = useAppSelector(state => state.auth);
+    // userId is needed for chat and tasks
+    const userId = user?.id;
+    const isAuthorized = isAuthenticated && user && STARTUP_ROLES.includes(user.role || '');
 
     // Data Hook (Lifted State)
     const { tasks, loading } = useStartupTasks(userId);
@@ -31,37 +33,16 @@ export default function StartupDashboardPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const checkUser = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
+        if (!isLoading) {
+            if (!isAuthenticated || !user) {
                 router.push("/auth");
-                return;
-            }
-            setUserId(user.id);
-
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.access_token) throw new Error("No token");
-
-                const { fetchApi } = await import("@/lib/apiClient");
-                const profile = await fetchApi<any>('/users/me', { token: session.access_token });
-
-                if (profile && STARTUP_ROLES.includes(profile.role)) {
-                    setIsAuthorized(true);
-                } else {
-                    router.push("/talent/dashboard");
-                }
-            } catch (err) {
-                console.error("Auth check failed", err);
+            } else if (!STARTUP_ROLES.includes(user.role || '')) {
                 router.push("/talent/dashboard");
             }
-        };
-        checkUser();
-    }, [router]);
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
-    if (!isAuthorized) return null; // Or Loader
+    if (isLoading || !isAuthorized) return null; // Or Loader
 
     // Find Document
     const selectedDrop = tasks.find(t => t.id === selectedDropId);

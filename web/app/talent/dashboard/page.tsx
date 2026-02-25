@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAppSelector } from "@/lib/store/hooks";
 import { isStartupRole } from "@/lib/auth/roles";
 import { TalentSidebar } from "./components/TalentSidebar";
 import { ExploreDropsView } from "./components/ExploreDropsView";
@@ -23,46 +24,28 @@ import { useLiveActivity } from "@/lib/hooks/useLiveActivity";
 
 export default function TalentDashboardPage() {
     const [currentView, setCurrentView] = useState<View>("overview");
-    const [userId, setUserId] = useState<string | undefined>(undefined);
-    const [userName, setUserName] = useState<string | undefined>(undefined);
+    const { user, isAuthenticated, isLoading } = useAppSelector(state => state.auth);
     const router = useRouter();
+    const userId = user?.id;
+    // Derive display name: profile name > email prefix > fallback
+    const userName = user?.full_name || user?.email?.split("@")[0] || "Developer";
+
+    const isAuthorized = isAuthenticated && user && !isStartupRole(user.role || '');
 
     // Initialize global realtime websocket connection
     useLiveActivity();
 
     useEffect(() => {
-        const checkUser = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
+        if (!isLoading) {
+            if (!isAuthenticated || !user) {
                 router.push("/auth");
-                return;
-            }
-            setUserId(user.id);
-
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("role, full_name")
-                .eq("id", user.id)
-                .single();
-
-            if (profile && isStartupRole(profile.role)) {
+            } else if (isStartupRole(user.role || '')) {
                 router.push("/startup/dashboard");
-                return;
             }
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
-            // Derive display name: profile name > email prefix > fallback
-            const name =
-                profile?.full_name ||
-                user.user_metadata?.full_name ||
-                user.email?.split("@")[0] ||
-                "Developer";
-            setUserName(name);
-        };
-
-        checkUser();
-    }, [router]);
+    if (isLoading || !isAuthorized) return null; // Or Loader
 
     return (
         <div className="flex h-screen bg-[#0c0c0e] font-sans overflow-hidden text-zinc-300 selection:bg-indigo-500/30">
